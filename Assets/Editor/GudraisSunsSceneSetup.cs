@@ -19,7 +19,7 @@ public static class GudraisSunsSceneSetup
         };
     }
 
-    [MenuItem("Gudrais suns/Open game scene")]
+    [UnityEditor.MenuItem("Gudrais suns/Open game scene")]
     static void Open()
     {
         if (!File.Exists(ScenePath)) Create(false);
