@@ -8,7 +8,7 @@ Spēlētājs saņem suņus no dzīvnieku labklājības centra, rūpējas par tie
 ## Kā palaist
 
 1. Atver projektu mapi Unity 6000.6.2f1.
-2. Atver `Assets/Scenes/SampleScene` un nospied **Play**.
+2. Atver ainu `Assets/Scenes/GudraisSuns` (vai izvēlne **Gudrais suns → Open game scene**) un nospied **Play**. Citas ainas (piem., SampleScene demo) netiek ietekmētas.
 
 Spēle visu izveido pati no koda (karte, tēli, UI, skaņas) – nav jāpievieno objekti vai grafikas faili. Izmanto jauno Input System.
 
