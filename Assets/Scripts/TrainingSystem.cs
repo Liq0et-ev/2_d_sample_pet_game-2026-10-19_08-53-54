@@ -228,6 +228,7 @@ public class TrainingSystem : MonoBehaviour
             spele.ekonomika.Nopelnit(10, true);
             spele.saskarne.Pazinojums(suns.vards + " apguva komandu \"" + KomandasNosaukumi.Dabut(komanda) + "\"! (+10 monētas)");
             spele.skana.Atskanot(Skana.Riet);
+            spele.sunaAnimacija.Priecasanas();
         }
         else
         {
@@ -383,6 +384,7 @@ public class TrainingSystem : MonoBehaviour
             spele.sunaProgress.PieliktPieredzi(12 * trapijumi);
             spele.speletajaProgress.PieliktPieredzi(5 * trapijumi);
             spele.skana.Atskanot(Skana.Riet);
+            spele.sunaAnimacija.Priecasanas();
         }
 
         string balva = ".";

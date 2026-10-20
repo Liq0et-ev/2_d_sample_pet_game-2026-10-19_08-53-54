@@ -1,13 +1,13 @@
 using UnityEngine;
 
 // DogFollow: aktivais suns seko speletajam.
+// (Suna kustibu animacijas ir atseviskaja skriptaa SunaAnimacija.)
 public class DogFollow : MonoBehaviour
 {
     public Transform speletajs;
     public bool kustas = false;
 
     Vector2 sadursmesPusIzmers = new Vector2(0.4f, 0.15f);
-    float animacijasLaiks = 0f;
 
     // Uzreiz noliek suni blakus speletajam
     public void Pielekt()
@@ -62,44 +62,11 @@ public class DogFollow : MonoBehaviour
             }
         }
 
-        // 4. Animacijas
-        if (kustas)
-        {
-            animacijasLaiks = animacijasLaiks + Time.deltaTime * 16f;
-        }
-        else
-        {
-            animacijasLaiks = animacijasLaiks + Time.deltaTime * 6f;
-        }
-
+        // 4. Statusa tekstu nedrikst atspoguļot, kad suns ir pagriezts uz kreiso pusi
         SunaIzskats izskats = GetComponent<SunaIzskats>();
-        if (izskats != null)
+        if (izskats != null && izskats.statusaTeksts != null)
         {
-            // Statusa tekstu nedrikst atspoguļot, kad suns ir pagriezts uz kreiso pusi
-            if (izskats.statusaTeksts != null)
-            {
-                izskats.statusaTeksts.transform.localScale = new Vector3(transform.localScale.x, 1f, 1f);
-            }
-
-            // Aste luncinas: laimigs suns luncina stipraki
-            if (izskats.aste != null)
-            {
-                float luncinasStiprums = 8f;
-                if (spele.suns.garastavoklis > 50f)
-                {
-                    luncinasStiprums = 28f;
-                }
-                float leciens = Mathf.Sin(animacijasLaiks) * luncinasStiprums;
-                izskats.aste.localRotation = Quaternion.Euler(0, 0, 35f + leciens);
-            }
-        }
-
-        // Ermenis lekā, kad suns skrien
-        Transform ermenis = transform.Find("Ermenis");
-        if (ermenis != null && kustas)
-        {
-            float lekasana = Mathf.Abs(Mathf.Sin(animacijasLaiks)) * 0.05f;
-            ermenis.localPosition = new Vector3(0, 0.45f + lekasana, 0);
+            izskats.statusaTeksts.transform.localScale = new Vector3(transform.localScale.x, 1f, 1f);
         }
     }
 }

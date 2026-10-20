@@ -43,6 +43,7 @@ Kods ir rakstīts vienkāršā veidā: mainīgo, funkciju un palīgklašu nosauk
 | `GameBootstrap.cs` | Izveido visu spēli un karti, startē ar Play |
 | `GameManager.cs` | Centrālā piekļuve sistēmām (`GameManager.Galvenais`), uzdevumu teksts, komandu enum |
 | `PlayerMovement.cs`, `CameraFollow.cs`, `DogFollow.cs` | Kustība, kamera, suņa sekošana |
+| `SunaAnimacija.cs` | Suņa animācijas ar kodu: skriešana, elpošana, sēdēšana, guļēšana, ēšana, lēkāšana, slimības poza |
 | `InteractionController.cs` | E mijiedarbība |
 | `DogStatus.cs`, `DogProgress.cs`, `PlayerProgress.cs` | Vajadzības, prasmes, līmeņi |
 | `CareSystem.cs` | Māja, parks, klīnika |

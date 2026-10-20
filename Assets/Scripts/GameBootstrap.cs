@@ -58,6 +58,7 @@ public static class GameBootstrap
         spele.sunaProgress = sunaObjekts.AddComponent<DogProgress>();
         spele.sunaSekosana = sunaObjekts.AddComponent<DogFollow>();
         spele.sunaSekosana.speletajs = speletajs.transform;
+        spele.sunaAnimacija = sunaObjekts.AddComponent<SunaAnimacija>();
         sunaObjekts.SetActive(false);
 
         // 5. Spēles sistēmas

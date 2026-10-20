@@ -36,6 +36,7 @@ public class GameManager : MonoBehaviour
     public DogStatus suns;
     public DogProgress sunaProgress;
     public DogFollow sunaSekosana;
+    public SunaAnimacija sunaAnimacija;
     public PlayerProgress speletajaProgress;
     public EconomyManager ekonomika;
     public CareSystem aprupe;
