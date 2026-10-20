@@ -3,12 +3,16 @@ using UnityEngine;
 // Builds the whole game at runtime, so pressing Play in any scene starts "Gudrais suns".
 public static class GameBootstrap
 {
+    public const string SceneName = "GudraisSuns";
+
     static readonly Color Grass = new Color(0.38f, 0.64f, 0.34f);
     static readonly Color PathCol = new Color(0.84f, 0.78f, 0.62f);
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Start()
     {
+        // Only run in the dedicated scene so the other sample scenes stay untouched.
+        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != SceneName) return;
         if (Object.FindFirstObjectByType<GameManager>() != null) return;
 
         var root = new GameObject("GudraisSuns");
