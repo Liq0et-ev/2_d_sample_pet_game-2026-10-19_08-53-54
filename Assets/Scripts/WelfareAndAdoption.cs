@@ -161,9 +161,9 @@ public class WelfareAndAdoption : MonoBehaviour
         spele.irPabarots = spele.adopcijas > 0;
 
         spele.sunaObjekts.SetActive(true);
-        spele.sunaSekosana.Pielekt();
+        spele.PieliktSuniPieSpeletaja();
         spele.skana.Atskanot(Skana.Riet);
-        spele.sunaAnimacija.Priecasanas();
+        spele.SunaPriecajas();
         spele.saskarne.Pazinojums("Saņēmi suni " + vards + "! " + spele.suns.RaksturaApraksts());
         spele.saskarne.AizvertIzvelni();
         bridinajumi = 0;

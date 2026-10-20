@@ -185,7 +185,7 @@ public class NujasSpele : MonoBehaviour
                 spele.skana.Atskanot(Skana.Labi);
             }
             spele.skana.Atskanot(Skana.Riet);
-            spele.sunaAnimacija.Priecasanas();
+            spele.SunaPriecajas();
         }
         else
         {

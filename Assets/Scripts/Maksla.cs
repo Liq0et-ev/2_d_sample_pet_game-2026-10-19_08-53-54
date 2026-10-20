@@ -260,6 +260,10 @@ public class SunaIzskats : MonoBehaviour
     public Transform aste;
     public TextMesh statusaTeksts;
 
+    // 3D versijas dalas (tās ir Renderer, nevis SpriteRenderer)
+    public List<Renderer> kruasaDalas3D = new List<Renderer>();
+    public List<Renderer> tumsasDalas3D = new List<Renderer>();
+
     // Nokraso suni ar izveleto kruasu
     public void Nokrasot(Color krasa)
     {
@@ -273,6 +277,16 @@ public class SunaIzskats : MonoBehaviour
         for (int i = 0; i < tumsasDalas.Count; i++)
         {
             tumsasDalas[i].color = tumsaKrasa;
+        }
+
+        // 3D dalas: katrai jauns materials ar dotu krasu
+        for (int i = 0; i < kruasaDalas3D.Count; i++)
+        {
+            Maksla3D.Nokrasot(kruasaDalas3D[i], krasa);
+        }
+        for (int i = 0; i < tumsasDalas3D.Count; i++)
+        {
+            Maksla3D.Nokrasot(tumsasDalas3D[i], tumsaKrasa);
         }
     }
 }

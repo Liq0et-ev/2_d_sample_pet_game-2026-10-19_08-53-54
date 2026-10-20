@@ -150,7 +150,7 @@ public class SunaAnimacija : MonoBehaviour
         }
 
         // Ja suns skrien, tad tas iet
-        if (spele.sunaSekosana.kustas)
+        if (spele.SunaKustas())
         {
             stavesanasLaiks = 0f;
             stavoklis = SunaStavoklis.Iet;

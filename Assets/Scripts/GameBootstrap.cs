@@ -325,7 +325,7 @@ public static class GameBootstrap
     }
 
     // Vai šajā vietā nedrīkst likt koku?
-    static bool VaiKokaVietaAiznemta(Vector2 vieta)
+    public static bool VaiKokaVietaAiznemta(Vector2 vieta)
     {
         // Galvenais ceļš un centrs
         if (Mathf.Abs(vieta.y) < 3.2f) return true;

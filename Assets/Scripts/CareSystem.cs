@@ -77,7 +77,7 @@ public class CareSystem : MonoBehaviour
         suns.Mainit(0, 40, 0, 2);       // +40 barība, +2 garastāvoklis
         spele.irPabarots = true;
         spele.skana.Atskanot(Skana.Riet);
-        spele.sunaAnimacija.Ediens();
+        spele.SunaEd();
         spele.saskarne.Pazinojums(suns.vards + " paēda.");
     }
 
@@ -186,7 +186,7 @@ public class CareSystem : MonoBehaviour
         suns.Mainit(0, -5, -12, garastavoklaPieaugums);
         spele.ekonomika.Nopelnit(1);
         spele.sunaProgress.PieliktPieredzi(3);
-        spele.sunaAnimacija.Priecasanas();
+        spele.SunaPriecajas();
         spele.saskarne.Pazinojums(suns.vards + " izbaudīja pastaigu.");
     }
 
@@ -197,7 +197,7 @@ public class CareSystem : MonoBehaviour
 
         suns.Mainit(0, -3, -10, 20);
         spele.skana.Atskanot(Skana.Riet);
-        spele.sunaAnimacija.Priecasanas();
+        spele.SunaPriecajas();
         spele.sunaProgress.PieliktPieredzi(4);
         spele.saskarne.Pazinojums(suns.vards + " priecīgi spēlējas!");
     }

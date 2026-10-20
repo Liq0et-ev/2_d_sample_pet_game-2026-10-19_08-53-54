@@ -114,7 +114,7 @@ public class DogStatus : MonoBehaviour
         {
             energijasZaudejums = energijasZaudejums * 1.5f;
         }
-        if (spele.sunaSekosana != null && spele.sunaSekosana.kustas)
+        if (spele.SunaKustas())
         {
             energijasZaudejums = energijasZaudejums * 3f;
         }

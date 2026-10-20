@@ -1,6 +1,6 @@
 # Gudrais suns
 
-Mierīga 2D suņu aprūpes, apmācības un menedžmenta spēle (Unity 6000.6.2f1, C#, top-down).
+Mierīga 2D un 3D suņu aprūpes, apmācības un menedžmenta spēle (Unity 6000.6.2f1, C#, top-down).
 Grupa 9, rudens semestris 2026./2027. – 1. praktiskais darbs.
 
 Spēlētājs saņem suņus no dzīvnieku labklājības centra, rūpējas par tiem, apmāca komandas un sagatavo adopcijai. Mērķis – 10 veiksmīgas adopcijas; pēc tam var turpināt brīvajā režīmā.
@@ -8,7 +8,13 @@ Spēlētājs saņem suņus no dzīvnieku labklājības centra, rūpējas par tie
 ## Kā palaist
 
 1. Atver projektu mapi Unity 6000.6.2f1.
-2. Atver ainu `Assets/Scenes/GudraisSuns` (vai izvēlne **Gudrais suns → Open game scene**) un nospied **Play**. Citas ainas (piem., SampleScene demo) netiek ietekmētas.
+2. Atver vienu no divām ainām un nospied **Play**:
+   - `Assets/Scenes/GudraisSuns` – **2D** versija (vai izvēlne **Gudrais suns → Open game scene (2D)**)
+   - `Assets/Scenes/GudraisSuns3D` – **3D** versija (vai izvēlne **Gudrais suns → Open game scene (3D)**)
+
+Citas ainas (piem., SampleScene demo) netiek ietekmētas.
+
+Abām versijām ir tā pati spēles loģika (suns, veikals, treniņš, adopcija, UI, skaņa); atšķiras tikai grafika, kustība, kamera un animācijas. 3D versijā kamera seko spēlētājam no augšas un aizmugures, un viss ir uzbūvēts no Unity gatavajām formām.
 
 Spēle visu izveido pati no koda (karte, tēli, UI, skaņas) – nav jāpievieno objekti vai grafikas faili. Izmanto jauno Input System.
 
@@ -44,6 +50,8 @@ Kods ir rakstīts vienkāršā veidā: mainīgo, funkciju un palīgklašu nosauk
 | `GameManager.cs` | Centrālā piekļuve sistēmām (`GameManager.Galvenais`), uzdevumu teksts, komandu enum |
 | `PlayerMovement.cs`, `CameraFollow.cs`, `DogFollow.cs` | Kustība, kamera, suņa sekošana |
 | `SunaAnimacija.cs` | Suņa animācijas ar kodu: skriešana, elpošana, sēdēšana, guļēšana, ēšana, lēkāšana, slimības poza |
+| `GameBootstrap3D.cs`, `Maksla3D.cs` | 3D versija: karte, tēli, suns no 3D formām |
+| `PlayerMovement3D.cs`, `CameraFollow3D.cs`, `DogFollow3D.cs`, `SunaAnimacija3D.cs` | 3D kustība, kamera, suņa sekošana un animācijas |
 | `InteractionController.cs` | E mijiedarbība |
 | `DogStatus.cs`, `DogProgress.cs`, `PlayerProgress.cs` | Vajadzības, prasmes, līmeņi |
 | `CareSystem.cs` | Māja, parks, klīnika |
@@ -56,6 +64,6 @@ Kods ir rakstīts vienkāršā veidā: mainīgo, funkciju un palīgklašu nosauk
 
 ## Zināmie ierobežojumi
 
-- Grafika ir vienkāršas krāsainas formas (vieta īstajiem sprite).
+- Grafika ir vienkāršas krāsainas formas (vieta īstajiem sprite un 3D modeļiem).
 - Viens aktīvais suns; nav saglabāšanas.
 - Atlīdzības un vajadzību izmaiņu ātrumi ir sākotnēji, jālīdzsvaro testēšanā.

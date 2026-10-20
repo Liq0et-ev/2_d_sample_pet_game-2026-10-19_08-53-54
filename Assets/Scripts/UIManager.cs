@@ -777,11 +777,11 @@ public class UIManager : MonoBehaviour
         uzdevumaTeksts.text = spele.DabutUzdevumu();
 
         // Minikartes punkti
-        speletajaPunkts.anchoredPosition = KartesPozicija(spele.speletajs.position);
+        speletajaPunkts.anchoredPosition = KartesPozicija(spele.KartesVieta(spele.speletajs));
         sunaPunkts.gameObject.SetActive(irSuns);
         if (irSuns)
         {
-            sunaPunkts.anchoredPosition = KartesPozicija(spele.sunaObjekts.transform.position);
+            sunaPunkts.anchoredPosition = KartesPozicija(spele.KartesVieta(spele.sunaObjekts.transform));
         }
     }
 }

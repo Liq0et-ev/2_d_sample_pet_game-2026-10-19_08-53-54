@@ -8,7 +8,7 @@ public class InteractionController : MonoBehaviour
     void Update()
     {
         GameManager spele = GameManager.Galvenais;
-        Vector2 speletajaVieta = spele.speletajs.position;
+        Vector2 speletajaVieta = spele.KartesVieta(spele.speletajs);
 
         // Pasaka, kura zona ir speletajam apkārt (vai null, ja uz cela)
         spele.pasreizejaZona = Pasaule.ZonaPunkta(speletajaVieta);

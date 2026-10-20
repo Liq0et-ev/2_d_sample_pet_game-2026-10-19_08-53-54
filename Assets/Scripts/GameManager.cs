@@ -37,6 +37,8 @@ public class GameManager : MonoBehaviour
     public DogProgress sunaProgress;
     public DogFollow sunaSekosana;
     public SunaAnimacija sunaAnimacija;
+    public DogFollow3D sunaSekosana3D;          // 3D versijas suna sekošana
+    public SunaAnimacija3D sunaAnimacija3D;     // 3D versijas suna animācija
     public PlayerProgress speletajaProgress;
     public EconomyManager ekonomika;
     public CareSystem aprupe;
@@ -48,6 +50,7 @@ public class GameManager : MonoBehaviour
     public AudioManager skana;
 
     // Speles stavoklis
+    public bool irTrisDimensiju = false;   // true, ja spēle darbojas 3D versijā
     public bool irSuns;          // vai speletajam pasreiz ir suns
     public bool irPabarots;      // vai suns jau reizi ir pabarots (pamacibai)
     public int adopcijas;        // cik suni jau adoptēti
@@ -56,6 +59,65 @@ public class GameManager : MonoBehaviour
     void Awake()
     {
         Galvenais = this;
+    }
+
+    // Atgriež objekta vietu kartes koordinātēs (2D: X un Y, 3D: X un Z)
+    public Vector2 KartesVieta(Transform objekts)
+    {
+        if (irTrisDimensiju)
+        {
+            return new Vector2(objekts.position.x, objekts.position.z);
+        }
+        return new Vector2(objekts.position.x, objekts.position.y);
+    }
+
+    // Vai suns pasreiz skrien?
+    public bool SunaKustas()
+    {
+        if (irTrisDimensiju)
+        {
+            return sunaSekosana3D != null && sunaSekosana3D.kustas;
+        }
+        return sunaSekosana != null && sunaSekosana.kustas;
+    }
+
+    // Uzreiz noliek suni blakus speletajam
+    public void PieliktSuniPieSpeletaja()
+    {
+        if (irTrisDimensiju)
+        {
+            sunaSekosana3D.Pielekt();
+        }
+        else
+        {
+            sunaSekosana.Pielekt();
+        }
+    }
+
+    // Suns ēd (animacija)
+    public void SunaEd()
+    {
+        if (irTrisDimensiju)
+        {
+            sunaAnimacija3D.Ediens();
+        }
+        else
+        {
+            sunaAnimacija.Ediens();
+        }
+    }
+
+    // Suns priecājas (animacija)
+    public void SunaPriecajas()
+    {
+        if (irTrisDimensiju)
+        {
+            sunaAnimacija3D.Priecasanas();
+        }
+        else
+        {
+            sunaAnimacija.Priecasanas();
+        }
     }
 
     // Atver izvelni atkariba no ekas, pie kuras speletajs stav
