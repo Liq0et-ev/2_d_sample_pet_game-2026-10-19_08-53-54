@@ -1,117 +1,274 @@
 using UnityEngine;
 
-// Feeding, resting, walking, playing and treatment (Home, Park, Clinic menus).
+// CareSystem: suna aprupe. Šeit ir trīs izvelnes:
+//   Maja     - barot un likt atpūsties
+//   Parks    - pastaigas un rotaļas
+//   Klinika  - slimibu arstēšana
 public class CareSystem : MonoBehaviour
 {
-    GameManager gm { get { return GameManager.I; } }
-
-    MenuDef NoDog(string title)
+    // Izvelne, ko rādām, ja speletajam vēl nav suņa
+    IzvelnesApraksts IzvelneBezSuna(string virsraksts)
     {
-        return new MenuDef { title = title, body = "Tev vēl nav suņa. Dodies uz Labklājības centru, lai saņemtu savu pirmo suni." };
+        IzvelnesApraksts izvelne = new IzvelnesApraksts();
+        izvelne.virsraksts = virsraksts;
+        izvelne.teksts = "Tev vēl nav suņa. Dodies uz Labklājības centru, lai saņemtu savu pirmo suni.";
+        return izvelne;
     }
 
-    // ---------------- HOME ----------------
-    public void OpenHomeMenu() { gm.ui.OpenMenu(HomeMenu); }
-
-    MenuDef HomeMenu()
+    // =================================================================
+    // MAJA
+    // =================================================================
+    public void AtvertMajasIzvelni()
     {
-        if (!gm.hasDog) return NoDog("Māja");
-        var d = gm.dog; var e = gm.economy;
-        var m = new MenuDef { title = "Māja" };
-        m.body = d.dogName + " – " + DogStatus.TemperamentName(d.temperament) + ". " + d.TemperamentInfo() +
-                 "\nBarība inventārā: " + e.food + "   |   Mājas līmenis: " + e.houseLevel + "/" + EconomyManager.MaxUpgrade;
-        m.items.Add(new MenuItem("Pabarot suni (barība: " + e.food + ")", Feed, e.food > 0 && d.food < 95f));
-        m.items.Add(new MenuItem("Likt atpūsties guļvietā", Rest, d.energy < 95f));
+        GameManager.Galvenais.saskarne.AtvertIzvelni(MajasIzvelne);
+    }
 
-        if (e.houseLevel < EconomyManager.MaxUpgrade)
+    IzvelnesApraksts MajasIzvelne()
+    {
+        GameManager spele = GameManager.Galvenais;
+        if (spele.irSuns == false)
         {
-            int target = e.houseLevel + 1;
-            int cost = 80 * target;
-            int req = target + 1;
-            bool ok = gm.playerProg.level >= req;
-            m.items.Add(new MenuItem("Uzlabot māju → " + target + ". līm. (" + cost + " monētas, spēlētāja līm. " + req + ")",
-                () => { if (ok && e.Spend(cost)) { e.houseLevel++; gm.ui.Toast("Māja uzlabota! Labāka atpūta un lielāka pasīvā peļņa."); gm.audioMgr.Play(Sfx.Good); } },
-                ok));
+            return IzvelneBezSuna("Māja");
         }
-        return m;
-    }
 
-    void Feed()
-    {
-        var d = gm.dog; var e = gm.economy;
-        if (e.food <= 0) { gm.ui.Toast("Nav barības – nopērc to veikalā."); return; }
-        e.food--;
-        d.Mod(0, 40, 0, 2);
-        gm.fedOnce = true;
-        gm.audioMgr.Play(Sfx.Bark);
-        gm.ui.Toast(d.dogName + " paēda.");
-    }
+        DogStatus suns = spele.suns;
+        EconomyManager ekonomika = spele.ekonomika;
 
-    void Rest()
-    {
-        var d = gm.dog; var e = gm.economy;
-        gm.ui.Fade();
-        d.Mod(3, -8, 50 + 15 * e.houseLevel, 3);
-        gm.audioMgr.Play(Sfx.Good);
-        gm.ui.Toast(d.dogName + " izgulējās un atguva spēkus.");
-    }
+        IzvelnesApraksts izvelne = new IzvelnesApraksts();
+        izvelne.virsraksts = "Māja";
+        izvelne.teksts = suns.vards + " – " + DogStatus.RaksturaNosaukums(suns.raksturs) + ". " + suns.RaksturaApraksts() +
+                         "\nBarība inventārā: " + ekonomika.ediens +
+                         "   |   Mājas līmenis: " + ekonomika.majasLimenis + "/" + EconomyManager.MaksimalaisUzlabojums;
 
-    // ---------------- PARK ----------------
-    public void OpenParkMenu() { gm.ui.OpenMenu(ParkMenu); }
+        // Poga "Pabarot" ir iespējota, ja ir barība un suns nav pilns
+        bool varPabarot = ekonomika.ediens > 0 && suns.bariba < 95f;
+        izvelne.pogas.Add(new IzvelnesPoga("Pabarot suni (barība: " + ekonomika.ediens + ")", Pabarot, varPabarot));
 
-    MenuDef ParkMenu()
-    {
-        if (!gm.hasDog) return NoDog("Parks");
-        var d = gm.dog; var e = gm.economy;
-        var m = new MenuDef { title = "Parks" };
-        m.body = "Pastaigas patērē enerģiju, bet uzlabo garastāvokli." + (e.leash ? " Ar pavadu pastaiga ir patīkamāka." : "");
-        bool canWalk = d.energy >= 15f && !d.sick;
-        m.items.Add(new MenuItem(canWalk ? "Doties pastaigā" : "Doties pastaigā (suns ir noguris vai slims)", Walk, canWalk));
-        bool canThrow = d.energy >= 10f && !d.sick;
-        m.items.Add(new MenuItem(canThrow ? "Mest nūju (5 mēģinājumi)" : "Mest nūju (suns ir noguris vai slims)", () => gm.stick.Begin(), canThrow));
-        bool canPlay = e.toy && d.energy >= 10f && !d.sick;
-        m.items.Add(new MenuItem(e.toy ? "Spēlēties ar rotaļlietu" : "Spēlēties (vajag rotaļlietu no veikala)", Play, canPlay));
-        return m;
-    }
+        // Poga "Atpūsties" ir iespējota, ja suns nav pilnīgi spēka pilns
+        bool varAtpusties = suns.energija < 95f;
+        izvelne.pogas.Add(new IzvelnesPoga("Likt atpūsties guļvietā", Atpusties, varAtpusties));
 
-    void Walk()
-    {
-        var d = gm.dog; var e = gm.economy;
-        gm.ui.Fade();
-        d.Mod(0, -5, -12, e.leash ? 18 : 10);
-        e.Earn(1);
-        gm.dogProg.AddXp(3);
-        gm.ui.Toast(d.dogName + " izbaudīja pastaigu.");
-    }
-
-    void Play()
-    {
-        var d = gm.dog;
-        d.Mod(0, -3, -10, 20);
-        gm.audioMgr.Play(Sfx.Bark);
-        gm.dogProg.AddXp(4);
-        gm.ui.Toast(d.dogName + " priecīgi spēlējas!");
-    }
-
-    // ---------------- CLINIC ----------------
-    public void OpenClinicMenu() { gm.ui.OpenMenu(ClinicMenu); }
-
-    MenuDef ClinicMenu()
-    {
-        if (!gm.hasDog) return NoDog("Veterinārā klīnika");
-        var d = gm.dog;
-        var m = new MenuDef { title = "Veterinārā klīnika" };
-        m.body = "Veterinārārsts: " + (d.sick ? d.dogName + " ir slims, vajag ārstēšanu." : d.health < 100f ? "Var veikt profilaktisko apskati." : d.dogName + " ir pilnīgi vesels.") +
-                 "\nVeselība: " + Mathf.RoundToInt(d.health);
-        int cost = d.sick ? 40 : 15;
-        m.items.Add(new MenuItem((d.sick ? "Ārstēt slimību" : "Profilaktiskā apskate") + " (" + cost + " monētas)", () =>
+        // Mājas uzlabojums (ja vēl nav sasniegts maksimums)
+        if (ekonomika.majasLimenis < EconomyManager.MaksimalaisUzlabojums)
         {
-            if (!gm.economy.Spend(cost)) return;
-            d.sick = false;
-            d.Mod(100, 0, 0, 5);
-            gm.audioMgr.Play(Sfx.Good);
-            gm.ui.Toast(d.dogName + " ir vesels!");
-        }, d.sick || d.health < 99f));
-        return m;
+            int jaunaisLimenis = ekonomika.majasLimenis + 1;
+            int cena = 80 * jaunaisLimenis;
+            int vajadzigsLimenis = jaunaisLimenis + 1;
+            bool varUzlabot = spele.speletajaProgress.limenis >= vajadzigsLimenis;
+            string teksts = "Uzlabot māju → " + jaunaisLimenis + ". līm. (" + cena + " monētas, spēlētāja līm. " + vajadzigsLimenis + ")";
+            izvelne.pogas.Add(new IzvelnesPoga(teksts, UzlabotMaju, varUzlabot));
+        }
+        return izvelne;
+    }
+
+    void Pabarot()
+    {
+        GameManager spele = GameManager.Galvenais;
+        EconomyManager ekonomika = spele.ekonomika;
+        DogStatus suns = spele.suns;
+
+        if (ekonomika.ediens <= 0)
+        {
+            spele.saskarne.Pazinojums("Nav barības – nopērc to veikalā.");
+            return;
+        }
+
+        ekonomika.ediens = ekonomika.ediens - 1;
+        suns.Mainit(0, 40, 0, 2);       // +40 barība, +2 garastāvoklis
+        spele.irPabarots = true;
+        spele.skana.Atskanot(Skana.Riet);
+        spele.saskarne.Pazinojums(suns.vards + " paēda.");
+    }
+
+    void Atpusties()
+    {
+        GameManager spele = GameManager.Galvenais;
+        DogStatus suns = spele.suns;
+
+        // Jo labāka māja, jo vairāk enerģijas atgūst
+        float energijasPieaugums = 50f + 15f * spele.ekonomika.majasLimenis;
+
+        spele.saskarne.Aptumsot();
+        suns.Mainit(3, -8, energijasPieaugums, 3);
+        spele.skana.Atskanot(Skana.Labi);
+        spele.saskarne.Pazinojums(suns.vards + " izgulējās un atguva spēkus.");
+    }
+
+    void UzlabotMaju()
+    {
+        GameManager spele = GameManager.Galvenais;
+        int jaunaisLimenis = spele.ekonomika.majasLimenis + 1;
+        int cena = 80 * jaunaisLimenis;
+
+        if (spele.ekonomika.IztereMonetas(cena))
+        {
+            spele.ekonomika.majasLimenis = jaunaisLimenis;
+            spele.saskarne.Pazinojums("Māja uzlabota! Labāka atpūta un lielāka pasīvā peļņa.");
+            spele.skana.Atskanot(Skana.Labi);
+        }
+    }
+
+    // =================================================================
+    // PARKS
+    // =================================================================
+    public void AtvertParkaIzvelni()
+    {
+        GameManager.Galvenais.saskarne.AtvertIzvelni(ParkaIzvelne);
+    }
+
+    IzvelnesApraksts ParkaIzvelne()
+    {
+        GameManager spele = GameManager.Galvenais;
+        if (spele.irSuns == false)
+        {
+            return IzvelneBezSuna("Parks");
+        }
+
+        DogStatus suns = spele.suns;
+        EconomyManager ekonomika = spele.ekonomika;
+
+        IzvelnesApraksts izvelne = new IzvelnesApraksts();
+        izvelne.virsraksts = "Parks";
+        izvelne.teksts = "Pastaigas patērē enerģiju, bet uzlabo garastāvokli.";
+        if (ekonomika.irPavada)
+        {
+            izvelne.teksts = izvelne.teksts + " Ar pavadu pastaiga ir patīkamāka.";
+        }
+
+        // Pastaiga
+        bool varDotiesPastaiga = suns.energija >= 15f && suns.slims == false;
+        string pastaigasTeksts = "Doties pastaigā";
+        if (varDotiesPastaiga == false)
+        {
+            pastaigasTeksts = "Doties pastaigā (suns ir noguris vai slims)";
+        }
+        izvelne.pogas.Add(new IzvelnesPoga(pastaigasTeksts, Pastaiga, varDotiesPastaiga));
+
+        // Nujas mesana (minispele)
+        bool varMestNuju = suns.energija >= 10f && suns.slims == false;
+        string nujasTeksts = "Mest nūju (5 mēģinājumi)";
+        if (varMestNuju == false)
+        {
+            nujasTeksts = "Mest nūju (suns ir noguris vai slims)";
+        }
+        izvelne.pogas.Add(new IzvelnesPoga(nujasTeksts, SaktNujasSpeli, varMestNuju));
+
+        // Spēlēšanās ar rotaļlietu
+        bool varSpeleties = ekonomika.irRotallieta && suns.energija >= 10f && suns.slims == false;
+        string speluTeksts = "Spēlēties ar rotaļlietu";
+        if (ekonomika.irRotallieta == false)
+        {
+            speluTeksts = "Spēlēties (vajag rotaļlietu no veikala)";
+        }
+        izvelne.pogas.Add(new IzvelnesPoga(speluTeksts, Speleties, varSpeleties));
+        return izvelne;
+    }
+
+    void SaktNujasSpeli()
+    {
+        GameManager.Galvenais.nujasSpele.Sakt();
+    }
+
+    void Pastaiga()
+    {
+        GameManager spele = GameManager.Galvenais;
+        DogStatus suns = spele.suns;
+
+        // Ar pavadu garastāvoklis pieaug vairāk
+        float garastavoklaPieaugums = 10f;
+        if (spele.ekonomika.irPavada)
+        {
+            garastavoklaPieaugums = 18f;
+        }
+
+        spele.saskarne.Aptumsot();
+        suns.Mainit(0, -5, -12, garastavoklaPieaugums);
+        spele.ekonomika.Nopelnit(1);
+        spele.sunaProgress.PieliktPieredzi(3);
+        spele.saskarne.Pazinojums(suns.vards + " izbaudīja pastaigu.");
+    }
+
+    void Speleties()
+    {
+        GameManager spele = GameManager.Galvenais;
+        DogStatus suns = spele.suns;
+
+        suns.Mainit(0, -3, -10, 20);
+        spele.skana.Atskanot(Skana.Riet);
+        spele.sunaProgress.PieliktPieredzi(4);
+        spele.saskarne.Pazinojums(suns.vards + " priecīgi spēlējas!");
+    }
+
+    // =================================================================
+    // KLINIKA
+    // =================================================================
+    public void AtvertKlinikasIzvelni()
+    {
+        GameManager.Galvenais.saskarne.AtvertIzvelni(KlinikasIzvelne);
+    }
+
+    // Arstesanas cena: slimu sunu arstet ir dargak nekā parasta apskate
+    int ArstesanasCena()
+    {
+        if (GameManager.Galvenais.suns.slims)
+        {
+            return 40;
+        }
+        return 15;
+    }
+
+    IzvelnesApraksts KlinikasIzvelne()
+    {
+        GameManager spele = GameManager.Galvenais;
+        if (spele.irSuns == false)
+        {
+            return IzvelneBezSuna("Veterinārā klīnika");
+        }
+
+        DogStatus suns = spele.suns;
+
+        IzvelnesApraksts izvelne = new IzvelnesApraksts();
+        izvelne.virsraksts = "Veterinārā klīnika";
+
+        string arstaTeksts;
+        if (suns.slims)
+        {
+            arstaTeksts = suns.vards + " ir slims, vajag ārstēšanu.";
+        }
+        else if (suns.veseliba < 100f)
+        {
+            arstaTeksts = "Var veikt profilaktisko apskati.";
+        }
+        else
+        {
+            arstaTeksts = suns.vards + " ir pilnīgi vesels.";
+        }
+        izvelne.teksts = "Veterinārārsts: " + arstaTeksts + "\nVeselība: " + Mathf.RoundToInt(suns.veseliba);
+
+        int cena = ArstesanasCena();
+        string pogasTeksts = "Profilaktiskā apskate";
+        if (suns.slims)
+        {
+            pogasTeksts = "Ārstēt slimību";
+        }
+        bool varArstet = suns.slims || suns.veseliba < 99f;
+        izvelne.pogas.Add(new IzvelnesPoga(pogasTeksts + " (" + cena + " monētas)", Arstet, varArstet));
+        return izvelne;
+    }
+
+    void Arstet()
+    {
+        GameManager spele = GameManager.Galvenais;
+        DogStatus suns = spele.suns;
+
+        if (spele.ekonomika.IztereMonetas(ArstesanasCena()) == false)
+        {
+            return;
+        }
+
+        suns.slims = false;
+        suns.Mainit(100, 0, 0, 5);
+        spele.skana.Atskanot(Skana.Labi);
+        spele.saskarne.Pazinojums(suns.vards + " ir vesels!");
     }
 }

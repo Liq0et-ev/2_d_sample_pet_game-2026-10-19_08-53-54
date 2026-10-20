@@ -1,29 +1,48 @@
 using UnityEngine;
 
-// Smoothly follows the player, clamped to the map.
+// CameraFollow: kamera seko speletajam, bet neiziet ārpus kartes.
 public class CameraFollow : MonoBehaviour
 {
-    public Transform target;
-    public float smooth = 8f;
+    public Transform merkis;        // ko kamera seko (speletajs)
+    public float gludums = 8f;
 
     void LateUpdate()
     {
-        if (target == null) return;
-        var cam = GetComponent<Camera>();
-        float h = cam.orthographicSize;
-        float w = h * cam.aspect;
-        Vector3 t = target.position + new Vector3(0, 0.8f, 0);
-        t.x = Mathf.Clamp(t.x, World.Bounds.xMin + w, Mathf.Max(World.Bounds.xMin + w, World.Bounds.xMax - w));
-        t.y = Mathf.Clamp(t.y, World.Bounds.yMin + h, Mathf.Max(World.Bounds.yMin + h, World.Bounds.yMax - h));
-        t.z = -10f;
-        float k = 1f - Mathf.Exp(-smooth * Time.unscaledDeltaTime);
-        transform.position = Vector3.Lerp(transform.position, t, k);
+        if (merkis == null)
+        {
+            return;
+        }
+
+        Camera kamera = GetComponent<Camera>();
+        float pusAugstums = kamera.orthographicSize;
+        float pusPlatums = pusAugstums * kamera.aspect;
+
+        // Vieta, uz kuru kamera grib tikt (nedaudz virs speletaja)
+        Vector3 vieta = merkis.position + new Vector3(0, 0.8f, 0);
+
+        // Neļaujam kamerai redzet ārpus kartes malam
+        float minX = Pasaule.Robezas.xMin + pusPlatums;
+        float maxX = Mathf.Max(minX, Pasaule.Robezas.xMax - pusPlatums);
+        float minY = Pasaule.Robezas.yMin + pusAugstums;
+        float maxY = Mathf.Max(minY, Pasaule.Robezas.yMax - pusAugstums);
+        vieta.x = Mathf.Clamp(vieta.x, minX, maxX);
+        vieta.y = Mathf.Clamp(vieta.y, minY, maxY);
+        vieta.z = -10f;
+
+        // Maigi pārvietojam kameru uz jauno vietu
+        float koeficients = 1f - Mathf.Exp(-gludums * Time.unscaledDeltaTime);
+        transform.position = Vector3.Lerp(transform.position, vieta, koeficients);
     }
 
-    public void Snap()
+    // Uzreiz noliek kameru pie speletaja (spēles sākumā)
+    public void Pielekt()
     {
-        if (target == null) return;
-        var p = target.position; p.z = -10f;
-        transform.position = p;
+        if (merkis == null)
+        {
+            return;
+        }
+        Vector3 vieta = merkis.position;
+        vieta.z = -10f;
+        transform.position = vieta;
     }
 }

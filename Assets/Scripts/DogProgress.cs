@@ -1,37 +1,63 @@
 using UnityEngine;
 
-// Per-dog level, xp and command skills.
+// DogProgress: katra suna limenis, pieredze un komandu prasmes.
 public class DogProgress : MonoBehaviour
 {
-    public int level = 1;
-    public int xp;
-    public float[] skill = new float[4];
+    public int limenis = 1;
+    public int pieredze = 0;
 
-    public int XpToNext { get { return 30 + 25 * level; } }
+    // Prasme katrai komandai (0 lidz 100). 100 nozime, ka komanda ir apgūta.
+    public float[] prasmes = new float[4];
 
-    public bool Learned(Command c) { return skill[(int)c] >= 100f; }
-
-    public int LearnedCount
+    // Cik pieredzes vajag lidz nakamajam limenim
+    public int PieredzesVajag()
     {
-        get { int n = 0; for (int i = 0; i < 4; i++) if (skill[i] >= 100f) n++; return n; }
+        return 30 + 25 * limenis;
     }
 
-    public void ResetProgress()
+    // Vai suns ir apguvis so komandu?
+    public bool VaiApgusta(Komanda komanda)
     {
-        level = 1; xp = 0;
-        for (int i = 0; i < skill.Length; i++) skill[i] = 0f;
+        return prasmes[(int)komanda] >= 100f;
     }
 
-    public void AddXp(int n)
+    // Cik komandas suns jau ir apguvis (0 lidz 4)
+    public int ApgustoKomanduSkaits()
     {
-        xp += n;
-        while (xp >= XpToNext)
+        int skaits = 0;
+        for (int i = 0; i < 4; i++)
         {
-            xp -= XpToNext;
-            level++;
-            var gm = GameManager.I;
-            gm.ui.Toast(gm.dog.dogName + " sasniedza " + level + ". līmeni!");
-            gm.audioMgr.Play(Sfx.Level);
+            if (prasmes[i] >= 100f)
+            {
+                skaits = skaits + 1;
+            }
+        }
+        return skaits;
+    }
+
+    // Atiestata visu (kad nak jauns suns)
+    public void Atiestatit()
+    {
+        limenis = 1;
+        pieredze = 0;
+        for (int i = 0; i < prasmes.Length; i++)
+        {
+            prasmes[i] = 0f;
+        }
+    }
+
+    // Pieskaita pieredzi un paaugstina limeni, ja vajag
+    public void PieliktPieredzi(int daudzums)
+    {
+        pieredze = pieredze + daudzums;
+        while (pieredze >= PieredzesVajag())
+        {
+            pieredze = pieredze - PieredzesVajag();
+            limenis = limenis + 1;
+
+            GameManager spele = GameManager.Galvenais;
+            spele.saskarne.Pazinojums(spele.suns.vards + " sasniedza " + limenis + ". līmeni!");
+            spele.skana.Atskanot(Skana.Limenis);
         }
     }
 }

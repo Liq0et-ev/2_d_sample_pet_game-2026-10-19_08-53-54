@@ -1,41 +1,74 @@
+using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
 
-// Creates Assets/Scenes/GudraisSuns.unity (camera only; the game builds itself on Play) and adds it to Build Settings.
+// Šis redaktora skripts izveido ainu Assets/Scenes/GudraisSuns.unity (tikai kamera un gaisma;
+// pati spēle uzbūvējas, kad nospiež Play) un pievieno to Build Settings sarakstam.
 [InitializeOnLoad]
 public static class GudraisSunsSceneSetup
 {
-    const string ScenePath = "Assets/Scenes/GudraisSuns.unity";
+    const string AinasCels = "Assets/Scenes/GudraisSuns.unity";
 
+    // Šis konstruktors tiek izsaukts automātiski, kad Unity ielādē skriptus
     static GudraisSunsSceneSetup()
     {
-        EditorApplication.delayCall += () =>
-        {
-            if (File.Exists(ScenePath) || EditorApplication.isPlayingOrWillChangePlaymode) return;
-            Create(true);
-        };
+        EditorApplication.delayCall += PiemektAinuJaVajag;
     }
 
-    [UnityEditor.MenuItem("Gudrais suns/Open game scene")]
-    static void Open()
+    static void PiemektAinuJaVajag()
     {
-        if (!File.Exists(ScenePath)) Create(false);
-        else if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) EditorSceneManager.OpenScene(ScenePath);
+        if (File.Exists(AinasCels))
+        {
+            return;
+        }
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            return;
+        }
+        IzveidotAinu(true);
     }
 
-    static void Create(bool onlyIfClean)
+    // Izvēlnes punkts: Gudrais suns -> Open game scene
+    [MenuItem("Gudrais suns/Open game scene")]
+    static void AtvertAinu()
     {
-        if (onlyIfClean && SceneManager.GetActiveScene().isDirty) return;
-        var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
-        EditorSceneManager.SaveScene(scene, ScenePath);
-        var list = EditorBuildSettings.scenes.ToList();
-        if (!list.Any(s => s.path == ScenePath))
+        if (File.Exists(AinasCels) == false)
         {
-            list.Insert(0, new EditorBuildSettingsScene(ScenePath, true));
-            EditorBuildSettings.scenes = list.ToArray();
+            IzveidotAinu(false);
+        }
+        else if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+        {
+            EditorSceneManager.OpenScene(AinasCels);
+        }
+    }
+
+    static void IzveidotAinu(bool tikaiJaTira)
+    {
+        // Nepārrakstām ainu, kurā ir nesaglabātas izmaiņas
+        if (tikaiJaTira && SceneManager.GetActiveScene().isDirty)
+        {
+            return;
+        }
+
+        Scene aina = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+        EditorSceneManager.SaveScene(aina, AinasCels);
+
+        // Pievienojam ainu Build Settings sarakstam, ja tur vēl nav
+        List<EditorBuildSettingsScene> ainas = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
+        bool jauIrSaraksta = false;
+        for (int i = 0; i < ainas.Count; i++)
+        {
+            if (ainas[i].path == AinasCels)
+            {
+                jauIrSaraksta = true;
+            }
+        }
+        if (jauIrSaraksta == false)
+        {
+            ainas.Insert(0, new EditorBuildSettingsScene(AinasCels, true));
+            EditorBuildSettings.scenes = ainas.ToArray();
         }
     }
 }

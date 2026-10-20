@@ -1,104 +1,187 @@
 using UnityEngine;
 
-public enum Temperament { Active, Calm, Timid }
+// Suna raksturs - ietekme, cik viegli vai gruti suns macas
+public enum Raksturs
+{
+    Aktivs,
+    Mierigs,
+    Bailigs
+}
 
-// Four needs of the active dog: health, hunger, energy, mood.
+// DogStatus: suna cetri raditaji - veseliba, izsalkums, energija un garastavoklis.
+// Visi raditaji ir no 0 lidz 100.
 public class DogStatus : MonoBehaviour
 {
-    public string dogName = "Reksis";
-    public Temperament temperament;
-    public Color coat = new Color(0.8f, 0.55f, 0.3f);
+    public string vards = "Reksis";
+    public Raksturs raksturs;
+    public Color kruasa = new Color(0.8f, 0.55f, 0.3f);
 
-    public float health = 100f, food = 80f, energy = 100f, mood = 70f;
-    public bool sick;
+    public float veseliba = 100f;
+    public float bariba = 80f;          // cik suns ir paedis (100 = pilnigi paedis)
+    public float energija = 100f;
+    public float garastavoklis = 70f;
+    public bool slims = false;
 
-    float sickTimer;
+    // Taimeris, kas ik pec 60 sekundem pārbauda, vai suns saslimst
+    float slimibasTaimeris = 0f;
 
-    public float Hunger { get { return 100f - food; } }
-
-    public static string TemperamentName(Temperament t)
+    // Izsalkums ir pretejs barībai: ja paedis 100, tad izsalkums ir 0
+    public float Izsalkums()
     {
-        switch (t)
+        return 100f - bariba;
+    }
+
+    // Rakstura nosaukums latviski
+    public static string RaksturaNosaukums(Raksturs r)
+    {
+        if (r == Raksturs.Aktivs) return "Aktīvs";
+        if (r == Raksturs.Mierigs) return "Mierīgs";
+        return "Bailīgs";
+    }
+
+    // Rakstura apraksts, ko paradam speletajam
+    public string RaksturaApraksts()
+    {
+        if (raksturs == Raksturs.Aktivs)
         {
-            case Temperament.Active: return "Aktīvs";
-            case Temperament.Calm: return "Mierīgs";
-            default: return "Bailīgs";
+            return "Aktīvs: ātri nogurst, bet labāk veic kustību komandas.";
+        }
+        if (raksturs == Raksturs.Mierigs)
+        {
+            return "Mierīgs: labi koncentrējas, labāk apgūst sēdēšanu, gulēšanu un gaidīšanu.";
+        }
+        return "Bailīgs: vajag daudz pozitīvas pieredzes; sliktā garastāvoklī mācās slikti.";
+    }
+
+    // Sagatavo suni (kad speletajs sanem jaunu suni)
+    public void Inicializet(string jaunsVards, Raksturs jaunsRaksturs, Color jaunaKrasa)
+    {
+        vards = jaunsVards;
+        raksturs = jaunsRaksturs;
+        kruasa = jaunaKrasa;
+
+        veseliba = 100f;
+        bariba = 75f;
+        energija = 100f;
+        if (jaunsRaksturs == Raksturs.Bailigs)
+        {
+            garastavoklis = 50f;
+        }
+        else
+        {
+            garastavoklis = 70f;
+        }
+        slims = false;
+        slimibasTaimeris = 0f;
+
+        SunaIzskats izskats = GetComponent<SunaIzskats>();
+        if (izskats != null)
+        {
+            izskats.Nokrasot(jaunaKrasa);
         }
     }
 
-    public string TemperamentInfo()
+    // Maina visus raditajus uzreiz. Pozitivs skaitlis = pieaug, negativs = samazinas.
+    public void Mainit(float veselibasMaina, float baribasMaina, float energijasMaina, float garastavoklaMaina)
     {
-        switch (temperament)
-        {
-            case Temperament.Active: return "Aktīvs: ātri nogurst, bet labāk veic kustību komandas.";
-            case Temperament.Calm: return "Mierīgs: labi koncentrējas, labāk apgūst sēdēšanu, gulēšanu un gaidīšanu.";
-            default: return "Bailīgs: vajag daudz pozitīvas pieredzes; sliktā garastāvoklī mācās slikti.";
-        }
-    }
-
-    public void Init(string n, Temperament t, Color c)
-    {
-        dogName = n; temperament = t; coat = c;
-        health = 100f; food = 75f; energy = 100f;
-        mood = t == Temperament.Timid ? 50f : 70f;
-        sick = false; sickTimer = 0f;
-        var v = GetComponent<DogVisual>();
-        if (v != null) v.Recolor(c);
-    }
-
-    public void Mod(float h, float f, float e, float m)
-    {
-        health = Mathf.Clamp(health + h, 1f, 100f);
-        food = Mathf.Clamp(food + f, 0f, 100f);
-        energy = Mathf.Clamp(energy + e, 0f, 100f);
-        mood = Mathf.Clamp(mood + m, 0f, 100f);
+        veseliba = Mathf.Clamp(veseliba + veselibasMaina, 1f, 100f);
+        bariba = Mathf.Clamp(bariba + baribasMaina, 0f, 100f);
+        energija = Mathf.Clamp(energija + energijasMaina, 0f, 100f);
+        garastavoklis = Mathf.Clamp(garastavoklis + garastavoklaMaina, 0f, 100f);
     }
 
     void Update()
     {
-        var gm = GameManager.I;
-        if (gm == null || !gm.hasDog) return;
+        GameManager spele = GameManager.Galvenais;
+        if (spele == null || spele.irSuns == false)
+        {
+            return;
+        }
+
         float dt = Time.deltaTime;
-        if (dt <= 0f) return;
-
-        food = Mathf.Max(0f, food - 0.30f * dt);
-
-        float eLoss = 0.06f * dt * (temperament == Temperament.Active ? 1.5f : 1f);
-        if (gm.dogFollow != null && gm.dogFollow.Moving) eLoss *= 3f;
-        energy = Mathf.Max(0f, energy - eLoss);
-
-        float md = -0.08f;
-        if (food < 25f) md -= 0.25f;
-        if (energy < 15f) md -= 0.10f;
-        if (sick) md -= 0.20f;
-        mood = Mathf.Clamp(mood + md * dt, 0f, 100f);
-
-        if (food <= 0f) health = Mathf.Max(1f, health - 0.4f * dt);
-        else if (sick) health = Mathf.Max(5f, health - 0.15f * dt);
-        else if (food > 50f && health < 100f) health = Mathf.Min(100f, health + 0.05f * dt);
-
-        sickTimer += dt;
-        if (sickTimer > 60f)
+        if (dt <= 0f)
         {
-            sickTimer = 0f;
-            float chance = 0.06f + (food < 20f ? 0.15f : 0f) + (mood < 20f ? 0.10f : 0f);
-            if (!sick && Random.value < chance)
-            {
-                sick = true;
-                gm.ui.Toast(dogName + " saslima! Nogādā to veterinārajā klīnikā.");
-                gm.audioMgr.Play(Sfx.Bad);
-            }
+            return;
         }
 
-        var vis = GetComponent<DogVisual>();
-        if (vis != null && vis.status != null)
+        // Suns pamazam kluust izsalcis
+        bariba = bariba - 0.30f * dt;
+        if (bariba < 0f) bariba = 0f;
+
+        // Energija samazinas lēnām; kad suns kustas, tad 3 reizes ātrāk
+        float energijasZaudejums = 0.06f * dt;
+        if (raksturs == Raksturs.Aktivs)
         {
-            string s = "";
-            if (sick) s = "+";
-            else if (food < 25f) s = "!";
-            else if (energy < 15f) s = "zZ";
-            else if (mood > 80f) s = "<3";
-            vis.status.text = s;
+            energijasZaudejums = energijasZaudejums * 1.5f;
         }
+        if (spele.sunaSekosana != null && spele.sunaSekosana.kustas)
+        {
+            energijasZaudejums = energijasZaudejums * 3f;
+        }
+        energija = energija - energijasZaudejums;
+        if (energija < 0f) energija = 0f;
+
+        // Garastavoklis krit, ja suns ir izsalcis, noguris vai slims
+        float garastavoklaMaina = -0.08f;
+        if (bariba < 25f) garastavoklaMaina = garastavoklaMaina - 0.25f;
+        if (energija < 15f) garastavoklaMaina = garastavoklaMaina - 0.10f;
+        if (slims) garastavoklaMaina = garastavoklaMaina - 0.20f;
+        garastavoklis = Mathf.Clamp(garastavoklis + garastavoklaMaina * dt, 0f, 100f);
+
+        // Veselibas izmaiņas
+        if (bariba <= 0f)
+        {
+            veseliba = Mathf.Max(1f, veseliba - 0.4f * dt);
+        }
+        else if (slims)
+        {
+            veseliba = Mathf.Max(5f, veseliba - 0.15f * dt);
+        }
+        else if (bariba > 50f && veseliba < 100f)
+        {
+            veseliba = Mathf.Min(100f, veseliba + 0.05f * dt);
+        }
+
+        ParbauditSlimibu(dt, spele);
+        AtjaunotStatusaTekstu();
+    }
+
+    // Ik pec 60 sekundem ir neliela iespeja, ka suns saslimst
+    void ParbauditSlimibu(float dt, GameManager spele)
+    {
+        slimibasTaimeris = slimibasTaimeris + dt;
+        if (slimibasTaimeris <= 60f)
+        {
+            return;
+        }
+        slimibasTaimeris = 0f;
+
+        float iespeja = 0.06f;
+        if (bariba < 20f) iespeja = iespeja + 0.15f;
+        if (garastavoklis < 20f) iespeja = iespeja + 0.10f;
+
+        if (slims == false && Random.value < iespeja)
+        {
+            slims = true;
+            spele.saskarne.Pazinojums(vards + " saslima! Nogādā to veterinārajā klīnikā.");
+            spele.skana.Atskanot(Skana.Slikti);
+        }
+    }
+
+    // Parada mazu simbolu virs suna galvas
+    void AtjaunotStatusaTekstu()
+    {
+        SunaIzskats izskats = GetComponent<SunaIzskats>();
+        if (izskats == null || izskats.statusaTeksts == null)
+        {
+            return;
+        }
+
+        string simbols = "";
+        if (slims) simbols = "+";
+        else if (bariba < 25f) simbols = "!";
+        else if (energija < 15f) simbols = "zZ";
+        else if (garastavoklis > 80f) simbols = "<3";
+        izskats.statusaTeksts.text = simbols;
     }
 }

@@ -1,74 +1,108 @@
 using UnityEngine;
 
-public enum Command { Sit, Down, Come, Wait }
-
-public static class Commands
+// Cetras komandas, ko suns var apgut
+public enum Komanda
 {
-    public static string Name(Command c)
+    Sedi,
+    Guli,
+    PieManis,
+    Gaidi
+}
+
+// Palidzfunkcija: dod komandas nosaukumu latviski
+public static class KomandasNosaukumi
+{
+    public static string Dabut(Komanda komanda)
     {
-        switch (c)
-        {
-            case Command.Sit: return "Sēdi";
-            case Command.Down: return "Guli";
-            case Command.Come: return "Pie manis";
-            default: return "Gaidi";
-        }
+        if (komanda == Komanda.Sedi) return "Sēdi";
+        if (komanda == Komanda.Guli) return "Guli";
+        if (komanda == Komanda.PieManis) return "Pie manis";
+        return "Gaidi";
     }
 }
 
-// Central access point to all game systems.
+// GameManager: viena vieta, kur glabajas atsauces uz visam speles sistemam.
+// Citi skripti raksta GameManager.Galvenais, lai dabutu piekluvi visam.
 public class GameManager : MonoBehaviour
 {
-    public static GameManager I;
-    public const int WinAdoptions = 10;
+    public static GameManager Galvenais;
 
-    public Transform player;
-    public GameObject dogObj;
-    public DogStatus dog;
-    public DogProgress dogProg;
-    public DogFollow dogFollow;
-    public PlayerProgress playerProg;
-    public EconomyManager economy;
-    public CareSystem care;
-    public TrainingSystem training;
-    public ShopSystem shop;
-    public StickGame stick;
-    public WelfareAndAdoption welfare;
-    public UIManager ui;
-    public AudioManager audioMgr;
+    // Cik adopciju vajag, lai uzvaretu
+    public const int UzvarasAdopcijas = 10;
 
-    public bool hasDog;
-    public bool fedOnce;
-    public int adoptions;
-    public ZoneInfo currentZone;
+    // Atsauces uz objektiem un sistemam
+    public Transform speletajs;
+    public GameObject sunaObjekts;
+    public DogStatus suns;
+    public DogProgress sunaProgress;
+    public DogFollow sunaSekosana;
+    public PlayerProgress speletajaProgress;
+    public EconomyManager ekonomika;
+    public CareSystem aprupe;
+    public TrainingSystem trenins;
+    public ShopSystem veikals;
+    public NujasSpele nujasSpele;
+    public WelfareAndAdoption labklajiba;
+    public UIManager saskarne;
+    public AudioManager skana;
 
-    void Awake() { I = this; }
+    // Speles stavoklis
+    public bool irSuns;          // vai speletajam pasreiz ir suns
+    public bool irPabarots;      // vai suns jau reizi ir pabarots (pamacibai)
+    public int adopcijas;        // cik suni jau adoptēti
+    public ZonasInfo pasreizejaZona;
 
-    public void OpenZone(ZoneType t)
+    void Awake()
     {
-        switch (t)
-        {
-            case ZoneType.Welfare: welfare.OpenMenu(); break;
-            case ZoneType.Training: training.OpenMenu(); break;
-            case ZoneType.Park: care.OpenParkMenu(); break;
-            case ZoneType.Home: care.OpenHomeMenu(); break;
-            case ZoneType.Shop: shop.OpenMenu(); break;
-            case ZoneType.Clinic: care.OpenClinicMenu(); break;
-        }
+        Galvenais = this;
     }
 
-    public string GetQuest()
+    // Atver izvelni atkariba no ekas, pie kuras speletajs stav
+    public void AtvertZonu(ZonasVeids veids)
     {
-        if (adoptions >= WinAdoptions) return "Mērķis sasniegts! Turpini brīvajā režīmā un palīdzi vēl vairāk suņiem.";
-        if (!hasDog)
-            return adoptions == 0
-                ? "Dodies uz Labklājības centru (ZR) un nospied E, lai saņemtu pirmo suni."
-                : "Saņem nākamo suni Labklājības centrā. Adopcijas: " + adoptions + "/" + WinAdoptions;
-        if (!fedOnce) return "Aizved suni uz Māju (DR) un pabaro to (E).";
-        int n = dogProg.LearnedCount;
-        if (n == 0) return "Apmeklē Treniņu laukumu (augšā vidū) un iemāci pirmo komandu.";
-        if (n < 4) return "Iemāci visas 4 komandas (" + n + "/4). Seko suņa vajadzībām!";
-        if (welfare.IsReady()) return "Suns ir gatavs! Dodies uz Labklājības centru adopcijas pārbaudījumam.";
+        if (veids == ZonasVeids.Labklajiba) labklajiba.AtvertIzvelni();
+        if (veids == ZonasVeids.Trenins) trenins.AtvertIzvelni();
+        if (veids == ZonasVeids.Parks) aprupe.AtvertParkaIzvelni();
+        if (veids == ZonasVeids.Maja) aprupe.AtvertMajasIzvelni();
+        if (veids == ZonasVeids.Veikals) veikals.AtvertIzvelni();
+        if (veids == ZonasVeids.Klinika) aprupe.AtvertKlinikasIzvelni();
+    }
+
+    // Atgriez tekstu, kas parada, ko speletajam darit tālāk
+    public string DabutUzdevumu()
+    {
+        if (adopcijas >= UzvarasAdopcijas)
+        {
+            return "Mērķis sasniegts! Turpini brīvajā režīmā un palīdzi vēl vairāk suņiem.";
+        }
+
+        if (irSuns == false)
+        {
+            if (adopcijas == 0)
+            {
+                return "Dodies uz Labklājības centru (ZR) un nospied E, lai saņemtu pirmo suni.";
+            }
+            return "Saņem nākamo suni Labklājības centrā. Adopcijas: " + adopcijas + "/" + UzvarasAdopcijas;
+        }
+
+        if (irPabarots == false)
+        {
+            return "Aizved suni uz Māju (DR) un pabaro to (E).";
+        }
+
+        int apgustas = sunaProgress.ApgustoKomanduSkaits();
+        if (apgustas == 0)
+        {
+            return "Apmeklē Treniņu laukumu (augšā vidū) un iemāci pirmo komandu.";
+        }
+        if (apgustas < 4)
+        {
+            return "Iemāci visas 4 komandas (" + apgustas + "/4). Seko suņa vajadzībām!";
+        }
+        if (labklajiba.VaiGatavsAdopcijai())
+        {
+            return "Suns ir gatavs! Dodies uz Labklājības centru adopcijas pārbaudījumam.";
+        }
         return "Parūpējies par suni (veselība, barība, garastāvoklis), tad dodies uz adopciju.";
     }
 }

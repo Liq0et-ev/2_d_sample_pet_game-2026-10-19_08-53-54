@@ -1,23 +1,29 @@
 using UnityEngine;
 
-// Player level and xp. Level persists between dogs.
+// PlayerProgress: speletaja limenis un pieredze.
+// Speletaja limenis paliek arī tad, kad suns tiek adoptēts.
 public class PlayerProgress : MonoBehaviour
 {
-    public int level = 1;
-    public int xp;
+    public int limenis = 1;
+    public int pieredze = 0;
 
-    public int XpToNext { get { return 40 + 35 * level; } }
-
-    public void AddXp(int n)
+    // Cik pieredzes vajag lidz nakamajam limenim
+    public int PieredzesVajag()
     {
-        xp += n;
-        while (xp >= XpToNext)
+        return 40 + 35 * limenis;
+    }
+
+    public void PieliktPieredzi(int daudzums)
+    {
+        pieredze = pieredze + daudzums;
+        while (pieredze >= PieredzesVajag())
         {
-            xp -= XpToNext;
-            level++;
-            var gm = GameManager.I;
-            gm.ui.Toast("Spēlētāja līmenis: " + level + "! Pārbaudi uzlabojumus mājā un laukumā.");
-            gm.audioMgr.Play(Sfx.Level);
+            pieredze = pieredze - PieredzesVajag();
+            limenis = limenis + 1;
+
+            GameManager spele = GameManager.Galvenais;
+            spele.saskarne.Pazinojums("Spēlētāja līmenis: " + limenis + "! Pārbaudi uzlabojumus mājā un laukumā.");
+            spele.skana.Atskanot(Skana.Limenis);
         }
     }
 }

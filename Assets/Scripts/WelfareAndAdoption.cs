@@ -1,212 +1,347 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// Welfare centre: gives dogs, runs the adoption test and periodic care inspections.
+// WelfareAndAdoption: labklajibas centrs.
+// Šeit speletajs sanem suni, nokārto adopcijas parbaudijumu un tiek veiktas aprupes parbaudes.
 public class WelfareAndAdoption : MonoBehaviour
 {
-    GameManager gm { get { return GameManager.I; } }
-
-    static readonly string[] Names = { "Reksis", "Bella", "Maksis", "Luna", "Čaks", "Mila", "Brūnis", "Ziba", "Toms", "Pūka", "Rūfus", "Dūka" };
-    static readonly Color[] Coats =
+    // Iespejamie suņu vardi un kruasas
+    static string[] sunuVardi = { "Reksis", "Bella", "Maksis", "Luna", "Čaks", "Mila", "Brūnis", "Ziba", "Toms", "Pūka", "Rūfus", "Dūka" };
+    static Color[] sunuKrasas =
     {
-        new Color(0.85f, 0.58f, 0.30f), new Color(0.55f, 0.38f, 0.25f), new Color(0.92f, 0.88f, 0.78f),
-        new Color(0.35f, 0.33f, 0.35f), new Color(0.80f, 0.70f, 0.40f), new Color(0.75f, 0.45f, 0.30f),
+        new Color(0.85f, 0.58f, 0.30f),
+        new Color(0.55f, 0.38f, 0.25f),
+        new Color(0.92f, 0.88f, 0.78f),
+        new Color(0.35f, 0.33f, 0.35f),
+        new Color(0.80f, 0.70f, 0.40f),
+        new Color(0.75f, 0.45f, 0.30f)
     };
 
-    // adoption test state
-    enum Phase { None, Show, Input, Result }
-    Phase phase;
-    List<Command> sequence = new List<Command>();
-    int idx;
-    string resultText = "";
-    bool resultOk;
-
-    // inspections
-    float inspectTimer;
-    int strikes;
-    const float InspectInterval = 90f;
-
-    public void OpenMenu()
+    // Adopcijas parbaudijuma posmi
+    enum TestaPosms
     {
-        phase = Phase.None;
-        gm.ui.OpenMenu(Build);
+        Nav,            // parbaudijums nenotiek
+        Raditajs,       // speletajs redz komandu secibu un to iegaumē
+        Ievade,         // speletajs atkārto secibu
+        Rezultats       // paradam rezultatu
     }
 
-    // ---- readiness ----
-    public List<string> Missing()
+    TestaPosms posms = TestaPosms.Nav;
+    List<Komanda> seciba = new List<Komanda>();       // komandas, kas jāatkārto
+    int ievadesIndekss = 0;                             // cik komandas jau atkārtotas
+    float raditajaTaimeris = 0f;                        // cik ilgi vēl rādām secibu
+    string rezultataTeksts = "";
+    bool rezultatsVeiksmigs = false;
+
+    // Aprupes parbaudes
+    float parbaudesTaimeris = 0f;
+    int bridinajumi = 0;
+    const float ParbaudesIntervals = 90f;
+
+    public void AtvertIzvelni()
     {
-        var list = new List<string>();
-        var d = gm.dog;
-        if (gm.dogProg.LearnedCount < 4) list.Add("Apgūtas komandas: " + gm.dogProg.LearnedCount + "/4");
-        if (d.health < 70f) list.Add("Veselība ≥ 70 (tagad " + Mathf.RoundToInt(d.health) + ")");
-        if (d.sick) list.Add("Suns ir slims");
-        if (d.mood < 50f) list.Add("Garastāvoklis ≥ 50 (tagad " + Mathf.RoundToInt(d.mood) + ")");
-        if (d.food < 40f) list.Add("Suns nedrīkst būt izsalcis (paēdis ≥ 40)");
-        if (d.energy < 20f) list.Add("Enerģija ≥ 20 (tagad " + Mathf.RoundToInt(d.energy) + ")");
-        return list;
+        posms = TestaPosms.Nav;
+        GameManager.Galvenais.saskarne.AtvertIzvelni(IzvelnesSaturs);
     }
 
-    public bool IsReady() { return gm.hasDog && Missing().Count == 0; }
+    // =================================================================
+    // Gatavibas parbaude
+    // =================================================================
 
-    // ---- menu ----
-    MenuDef Build()
+    // Atgriež sarakstu ar to, kas vēl nav izpildīts adopcijai
+    public List<string> KasTrukst()
     {
-        var m = new MenuDef { title = "Labklājības centrs" };
+        List<string> saraksts = new List<string>();
+        GameManager spele = GameManager.Galvenais;
+        DogStatus suns = spele.suns;
 
-        if (phase == Phase.Show || phase == Phase.Input) return BuildTest();
-        if (phase == Phase.Result)
+        int apgustas = spele.sunaProgress.ApgustoKomanduSkaits();
+        if (apgustas < 4) saraksts.Add("Apgūtas komandas: " + apgustas + "/4");
+        if (suns.veseliba < 70f) saraksts.Add("Veselība ≥ 70 (tagad " + Mathf.RoundToInt(suns.veseliba) + ")");
+        if (suns.slims) saraksts.Add("Suns ir slims");
+        if (suns.garastavoklis < 50f) saraksts.Add("Garastāvoklis ≥ 50 (tagad " + Mathf.RoundToInt(suns.garastavoklis) + ")");
+        if (suns.bariba < 40f) saraksts.Add("Suns nedrīkst būt izsalcis (paēdis ≥ 40)");
+        if (suns.energija < 20f) saraksts.Add("Enerģija ≥ 20 (tagad " + Mathf.RoundToInt(suns.energija) + ")");
+        return saraksts;
+    }
+
+    public bool VaiGatavsAdopcijai()
+    {
+        if (GameManager.Galvenais.irSuns == false)
         {
-            m.title = resultOk ? "Pārbaudījums nokārtots!" : "Pārbaudījums neizdevās";
-            m.body = resultText;
-            m.closeLabel = "Labi";
-            return m;
+            return false;
+        }
+        return KasTrukst().Count == 0;
+    }
+
+    // =================================================================
+    // Izvelne
+    // =================================================================
+    IzvelnesApraksts IzvelnesSaturs()
+    {
+        GameManager spele = GameManager.Galvenais;
+        IzvelnesApraksts izvelne = new IzvelnesApraksts();
+        izvelne.virsraksts = "Labklājības centrs";
+
+        // Ja notiek parbaudijums, rādam to
+        if (posms == TestaPosms.Raditajs || posms == TestaPosms.Ievade)
+        {
+            return TestaIzvelne();
         }
 
-        if (!gm.hasDog)
+        // Parbaudijuma rezultats
+        if (posms == TestaPosms.Rezultats)
         {
-            if (gm.adoptions >= GameManager.WinAdoptions)
-                m.body = "Darbinieks: Apsveicam! Tu esi sasniedzis lielāko atzinību – " + gm.adoptions + " veiksmīgas adopcijas. Vari turpināt brīvajā režīmā.";
-            else if (gm.adoptions == 0)
-                m.body = "Darbinieks: Sveiks! Mēs palīdzam suņiem atrast jaunas ģimenes. Uzticēsim tev pirmo suni – parūpējies par to, iemāci 4 komandas un sagatavo adopcijai.";
+            if (rezultatsVeiksmigs)
+            {
+                izvelne.virsraksts = "Pārbaudījums nokārtots!";
+            }
             else
-                m.body = "Darbinieks: Paldies par darbu! Adopcijas: " + gm.adoptions + "/" + GameManager.WinAdoptions + ". Esam gatavi uzticēt nākamo suni.";
-            m.items.Add(new MenuItem("Saņemt suni", () => { GiveDog(); gm.ui.CloseMenu(); }));
-            return m;
+            {
+                izvelne.virsraksts = "Pārbaudījums neizdevās";
+            }
+            izvelne.teksts = rezultataTeksts;
+            izvelne.aizvertPogasTeksts = "Labi";
+            return izvelne;
         }
 
-        var d = gm.dog;
-        var missing = Missing();
-        m.body = "Darbinieks: " + d.dogName + " – " + DogStatus.TemperamentName(d.temperament) + ", " + gm.dogProg.level + ". līmenis.\n" +
-                 (missing.Count == 0
-                    ? "Visi nosacījumi izpildīti – var sākt adopcijas pārbaudījumu!"
-                    : "Vēl jāizpilda:\n  • " + string.Join("\n  • ", missing));
-        m.items.Add(new MenuItem("Sākt adopcijas pārbaudījumu", StartTest, missing.Count == 0));
-        return m;
-    }
-
-    void GiveDog()
-    {
-        var d = gm.dog;
-        var t = (Temperament)Random.Range(0, 3);
-        d.Init(Names[Random.Range(0, Names.Length)], t, Coats[Random.Range(0, Coats.Length)]);
-        gm.dogProg.ResetProgress();
-        gm.hasDog = true;
-        gm.fedOnce = gm.adoptions > 0;       // tutorial hint only for the first dog
-        gm.dogObj.SetActive(true);
-        gm.dogFollow.Snap();
-        gm.audioMgr.Play(Sfx.Bark);
-        gm.ui.Toast("Saņēmi suni " + d.dogName + "! " + d.TemperamentInfo());
-        strikes = 0;
-    }
-
-    // ---- adoption test: memorise and repeat the command sequence ----
-    void StartTest()
-    {
-        sequence.Clear();
-        int len = Mathf.Min(7, 4 + gm.adoptions / 2);
-        for (int i = 0; i < len; i++) sequence.Add((Command)Random.Range(0, 4));
-        idx = 0;
-        phase = Phase.Show;
-        StartCoroutine(ShowThenInput(1.2f * len + 1.5f));
-    }
-
-    IEnumerator ShowThenInput(float seconds)
-    {
-        yield return new WaitForSecondsRealtime(seconds);
-        if (phase == Phase.Show && gm.ui.MenuOpen)
+        // Ja nav suņa, var saņemt jaunu
+        if (spele.irSuns == false)
         {
-            phase = Phase.Input;
-            gm.ui.RefreshMenu();
+            if (spele.adopcijas >= GameManager.UzvarasAdopcijas)
+            {
+                izvelne.teksts = "Darbinieks: Apsveicam! Tu esi sasniedzis lielāko atzinību – " + spele.adopcijas + " veiksmīgas adopcijas. Vari turpināt brīvajā režīmā.";
+            }
+            else if (spele.adopcijas == 0)
+            {
+                izvelne.teksts = "Darbinieks: Sveiks! Mēs palīdzam suņiem atrast jaunas ģimenes. Uzticēsim tev pirmo suni – parūpējies par to, iemāci 4 komandas un sagatavo adopcijai.";
+            }
+            else
+            {
+                izvelne.teksts = "Darbinieks: Paldies par darbu! Adopcijas: " + spele.adopcijas + "/" + GameManager.UzvarasAdopcijas + ". Esam gatavi uzticēt nākamo suni.";
+            }
+            izvelne.pogas.Add(new IzvelnesPoga("Saņemt suni", SanemtSuni));
+            return izvelne;
         }
-        else if (phase == Phase.Show) phase = Phase.None;
+
+        // Ja ir suns, rādam, kas vēl jāizdara pirms adopcijas
+        DogStatus suns = spele.suns;
+        List<string> truksts = KasTrukst();
+        izvelne.teksts = "Darbinieks: " + suns.vards + " – " + DogStatus.RaksturaNosaukums(suns.raksturs) + ", " + spele.sunaProgress.limenis + ". līmenis.\n";
+        if (truksts.Count == 0)
+        {
+            izvelne.teksts = izvelne.teksts + "Visi nosacījumi izpildīti – var sākt adopcijas pārbaudījumu!";
+        }
+        else
+        {
+            izvelne.teksts = izvelne.teksts + "Vēl jāizpilda:";
+            for (int i = 0; i < truksts.Count; i++)
+            {
+                izvelne.teksts = izvelne.teksts + "\n  • " + truksts[i];
+            }
+        }
+        izvelne.pogas.Add(new IzvelnesPoga("Sākt adopcijas pārbaudījumu", SaktParbaudijumu, truksts.Count == 0));
+        return izvelne;
     }
 
-    MenuDef BuildTest()
+    // Piešķir jaunu nejaušu suni
+    void SanemtSuni()
     {
-        var m = new MenuDef { title = "Adopcijas pārbaudījums", showClose = false };
-        if (phase == Phase.Show)
+        GameManager spele = GameManager.Galvenais;
+
+        string vards = sunuVardi[Random.Range(0, sunuVardi.Length)];
+        Color krasa = sunuKrasas[Random.Range(0, sunuKrasas.Length)];
+        Raksturs raksturs = (Raksturs)Random.Range(0, 3);
+
+        spele.suns.Inicializet(vards, raksturs, krasa);
+        spele.sunaProgress.Atiestatit();
+        spele.irSuns = true;
+
+        // Pirmajam sunim ir pamācība (vajag pabarot), nākamajiem vairs ne
+        spele.irPabarots = spele.adopcijas > 0;
+
+        spele.sunaObjekts.SetActive(true);
+        spele.sunaSekosana.Pielekt();
+        spele.skana.Atskanot(Skana.Riet);
+        spele.saskarne.Pazinojums("Saņēmi suni " + vards + "! " + spele.suns.RaksturaApraksts());
+        spele.saskarne.AizvertIzvelni();
+        bridinajumi = 0;
+    }
+
+    // =================================================================
+    // Adopcijas parbaudijums: jāiegaumē un jāatkārto komandu seciba
+    // =================================================================
+    void SaktParbaudijumu()
+    {
+        GameManager spele = GameManager.Galvenais;
+
+        // Jo vairāk adopciju, jo garāka seciba (no 4 līdz 7 komandām)
+        int garums = Mathf.Min(7, 4 + spele.adopcijas / 2);
+        seciba.Clear();
+        for (int i = 0; i < garums; i++)
         {
-            var names = new List<string>();
-            foreach (var c in sequence) names.Add(Commands.Name(c));
-            m.body = "Iegaumē komandu secību, kuru suns jāizpilda:\n\n" + string.Join("  →  ", names) + "\n\nPēc brīža tā pazudīs...";
-            return m;
+            seciba.Add((Komanda)Random.Range(0, 4));
         }
-        m.body = "Atkārto komandu secību! Izpildītas komandas: " + idx + "/" + sequence.Count;
+
+        ievadesIndekss = 0;
+        posms = TestaPosms.Raditajs;
+        raditajaTaimeris = 1.2f * garums + 1.5f;       // cik sekundes rādīt secību
+    }
+
+    IzvelnesApraksts TestaIzvelne()
+    {
+        IzvelnesApraksts izvelne = new IzvelnesApraksts();
+        izvelne.virsraksts = "Adopcijas pārbaudījums";
+        izvelne.rakstitAizvertPogu = false;
+
+        if (posms == TestaPosms.Raditajs)
+        {
+            string komandasTeksts = "";
+            for (int i = 0; i < seciba.Count; i++)
+            {
+                if (i > 0)
+                {
+                    komandasTeksts = komandasTeksts + "  →  ";
+                }
+                komandasTeksts = komandasTeksts + KomandasNosaukumi.Dabut(seciba[i]);
+            }
+            izvelne.teksts = "Iegaumē komandu secību, kuru suns jāizpilda:\n\n" + komandasTeksts + "\n\nPēc brīža tā pazudīs...";
+            return izvelne;
+        }
+
+        // Ievades posms: četras pogas, pa vienai katrai komandai
+        izvelne.teksts = "Atkārto komandu secību! Izpildītas komandas: " + ievadesIndekss + "/" + seciba.Count;
         for (int i = 0; i < 4; i++)
         {
-            var c = (Command)i;
-            m.items.Add(new MenuItem(Commands.Name(c), () => Answer(c)));
+            Komanda komanda = (Komanda)i;
+            izvelne.pogas.Add(new IzvelnesPoga(KomandasNosaukumi.Dabut(komanda), AtbildetUzKomandu, i));
         }
-        return m;
+        return izvelne;
     }
 
-    void Answer(Command c)
+    // Speletajs nospieda vienu no komandu pogam
+    void AtbildetUzKomandu(int komandasNumurs)
     {
-        if (c != sequence[idx])
-        {
-            Finish(false, "Darbinieks: Nepareiza komanda secībā. " + gm.dog.dogName + " vēl nav gatavs. Pamēģini vēlreiz, kad būsi gatavs.");
-            return;
-        }
-        gm.audioMgr.Play(Sfx.Good);
-        idx++;
-        if (idx >= sequence.Count) Finish(true, "");
-    }
+        GameManager spele = GameManager.Galvenais;
+        Komanda izveleta = (Komanda)komandasNumurs;
 
-    void Finish(bool ok, string text)
-    {
-        var d = gm.dog;
-        resultOk = ok;
-        phase = Phase.Result;
-        if (!ok)
+        if (izveleta != seciba[ievadesIndekss])
         {
-            d.Mod(0, 0, -5, -3);
-            gm.audioMgr.Play(Sfx.Bad);
-            resultText = text;
+            BeigtParbaudijumu(false, "Darbinieks: Nepareiza komanda secībā. " + spele.suns.vards + " vēl nav gatavs. Pamēģini vēlreiz, kad būsi gatavs.");
             return;
         }
 
-        int level = gm.dogProg.level;
-        int reward = 60 + 15 * level + 5 * gm.adoptions;
-        gm.adoptions++;
-        gm.economy.Earn(reward);
-        gm.playerProg.AddXp(40 + 10 * level);
-        string name = d.dogName;
-        gm.hasDog = false;
-        gm.dogObj.SetActive(false);
-        gm.audioMgr.Play(Sfx.Level);
-        resultText = name + " tika veiksmīgi adoptēts un ieguva jaunu ģimeni!\nAtlīdzība: " + reward + " monētas.\nAdopcijas: " + gm.adoptions + "/" + GameManager.WinAdoptions;
-        if (gm.adoptions == GameManager.WinAdoptions)
-            resultText += "\n\nTu sasniedzi galveno mērķi – labklājības centrs piešķir tev īpašu atzinību! Vari turpināt brīvajā režīmā.";
+        spele.skana.Atskanot(Skana.Labi);
+        ievadesIndekss = ievadesIndekss + 1;
+        if (ievadesIndekss >= seciba.Count)
+        {
+            BeigtParbaudijumu(true, "");
+        }
     }
 
-    // ---- periodic welfare inspections ----
+    void BeigtParbaudijumu(bool veiksmigi, string teksts)
+    {
+        GameManager spele = GameManager.Galvenais;
+        DogStatus suns = spele.suns;
+        rezultatsVeiksmigs = veiksmigi;
+        posms = TestaPosms.Rezultats;
+
+        // Ja neizdevās, suns mazliet nogurst un nobažās
+        if (veiksmigi == false)
+        {
+            suns.Mainit(0, 0, -5, -3);
+            spele.skana.Atskanot(Skana.Slikti);
+            rezultataTeksts = teksts;
+            return;
+        }
+
+        // Ja izdevās, suns tiek adoptēts
+        int sunaLimenis = spele.sunaProgress.limenis;
+        int balva = 60 + 15 * sunaLimenis + 5 * spele.adopcijas;
+        spele.adopcijas = spele.adopcijas + 1;
+        spele.ekonomika.Nopelnit(balva);
+        spele.speletajaProgress.PieliktPieredzi(40 + 10 * sunaLimenis);
+
+        string vards = suns.vards;
+        spele.irSuns = false;
+        spele.sunaObjekts.SetActive(false);
+        spele.skana.Atskanot(Skana.Limenis);
+
+        rezultataTeksts = vards + " tika veiksmīgi adoptēts un ieguva jaunu ģimeni!\nAtlīdzība: " + balva + " monētas.\nAdopcijas: " + spele.adopcijas + "/" + GameManager.UzvarasAdopcijas;
+        if (spele.adopcijas == GameManager.UzvarasAdopcijas)
+        {
+            rezultataTeksts = rezultataTeksts + "\n\nTu sasniedzi galveno mērķi – labklājības centrs piešķir tev īpašu atzinību! Vari turpināt brīvajā režīmā.";
+        }
+    }
+
+    // =================================================================
+    // Katru kadru: parbaudijuma taimeris un periodiskas aprupes parbaudes
+    // =================================================================
     void Update()
     {
-        if (!gm.hasDog || gm.ui.Blocking) return;
-        inspectTimer += Time.deltaTime;
-        if (inspectTimer < InspectInterval) return;
-        inspectTimer = 0f;
+        GameManager spele = GameManager.Galvenais;
 
-        var d = gm.dog;
-        // Tiredness alone is never penalised.
-        bool neglected = d.food < 15f || d.health < 30f || d.mood < 10f;
-        if (neglected)
+        // 1. Kamēr rāda komandu secību, skaitām laiku (spēles laiks ir apturēts, tāpēc unscaled)
+        if (posms == TestaPosms.Raditajs)
         {
-            strikes++;
-            if (strikes == 1)
+            raditajaTaimeris = raditajaTaimeris - Time.unscaledDeltaTime;
+            if (raditajaTaimeris <= 0f)
             {
-                gm.ui.Toast("Labklājības centra brīdinājums: " + d.dogName + " netiek pienācīgi aprūpēts! Uzlabo stāvokli.");
-                gm.audioMgr.Play(Sfx.Bad);
+                if (spele.saskarne.IzvelneAtverta())
+                {
+                    posms = TestaPosms.Ievade;
+                    spele.saskarne.AtjaunotIzvelni();
+                }
+                else
+                {
+                    posms = TestaPosms.Nav;       // spēlētājs aizvēra izvēlni, pārbaudījums atcelts
+                }
+            }
+        }
+
+        // 2. Aprupes parbaudes (tikai kad spele notiek)
+        if (spele.irSuns == false || spele.saskarne.IrBloketa())
+        {
+            return;
+        }
+
+        parbaudesTaimeris = parbaudesTaimeris + Time.deltaTime;
+        if (parbaudesTaimeris < ParbaudesIntervals)
+        {
+            return;
+        }
+        parbaudesTaimeris = 0f;
+        VeiktAprupesParbaudi();
+    }
+
+    // Labklajibas centrs parbauda, vai suns tiek labi aprupets.
+    // Nogurums vien nekad netiek sodits.
+    void VeiktAprupesParbaudi()
+    {
+        GameManager spele = GameManager.Galvenais;
+        DogStatus suns = spele.suns;
+
+        bool nolaidiba = suns.bariba < 15f || suns.veseliba < 30f || suns.garastavoklis < 10f;
+
+        if (nolaidiba)
+        {
+            bridinajumi = bridinajumi + 1;
+            if (bridinajumi == 1)
+            {
+                spele.saskarne.Pazinojums("Labklājības centra brīdinājums: " + suns.vards + " netiek pienācīgi aprūpēts! Uzlabo stāvokli.");
+                spele.skana.Atskanot(Skana.Slikti);
             }
             else
             {
-                int fine = Mathf.Min(gm.economy.coins, 30);
-                gm.economy.coins -= fine;
-                gm.ui.Toast("Labklājības centrs piemēroja naudas sodu (" + fine + " monētas) par nolaidību.");
-                gm.audioMgr.Play(Sfx.Bad);
+                int sods = Mathf.Min(spele.ekonomika.monetas, 30);
+                spele.ekonomika.monetas = spele.ekonomika.monetas - sods;
+                spele.saskarne.Pazinojums("Labklājības centrs piemēroja naudas sodu (" + sods + " monētas) par nolaidību.");
+                spele.skana.Atskanot(Skana.Slikti);
             }
         }
-        else if (strikes > 0) strikes--;
+        else if (bridinajumi > 0)
+        {
+            bridinajumi = bridinajumi - 1;
+        }
     }
 }

@@ -36,19 +36,22 @@ Suņa rādītāji: veselība, izsalkums, enerģija, garastāvoklis. Nogurums sod
 
 ## Skripti (`Assets/Scripts`)
 
+Kods ir rakstīts vienkāršā veidā: mainīgo, funkciju un palīgklašu nosaukumi ir latviski, komentāri – latviski. Tikai Unity pašu funkcijas (`Update`, `Start`, `Awake`...) paliek angliski. Galveno skriptu nosaukumi sakrīt ar prezentācijas 28. slaidu.
+
 | Fails | Loma |
 |---|---|
 | `GameBootstrap.cs` | Izveido visu spēli un karti, startē ar Play |
-| `GameManager.cs` | Centrālā piekļuve sistēmām, uzdevumu teksts |
+| `GameManager.cs` | Centrālā piekļuve sistēmām (`GameManager.Galvenais`), uzdevumu teksts, komandu enum |
 | `PlayerMovement.cs`, `CameraFollow.cs`, `DogFollow.cs` | Kustība, kamera, suņa sekošana |
 | `InteractionController.cs` | E mijiedarbība |
 | `DogStatus.cs`, `DogProgress.cs`, `PlayerProgress.cs` | Vajadzības, prasmes, līmeņi |
 | `CareSystem.cs` | Māja, parks, klīnika |
 | `TrainingSystem.cs` | Komandas un aportēšanas minispēle |
+| `NujasSpele.cs` | Parka minispēle: nūjas mešana (5 mēģinājumi, griežas adata) |
 | `ShopSystem.cs`, `EconomyManager.cs` | Pirkumi, monētas, pasīvie ienākumi |
 | `WelfareAndAdoption.cs` | Suņu izsniegšana, pārbaudes, adopcija |
 | `UIManager.cs`, `AudioManager.cs` | HUD, izvēlnes, minikarte, ģenerētas skaņas |
-| `Art.cs`, `World.cs` | Procedurālā grafika, kartes dati un sadursmes |
+| `Maksla.cs`, `Pasaule.cs` | Procedurālā grafika, kartes dati un sadursmes |
 
 ## Zināmie ierobežojumi
 

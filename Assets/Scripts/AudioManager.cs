@@ -1,159 +1,392 @@
-using System;
 using UnityEngine;
 
-public enum Sfx { Click, Good, Bad, Coin, Bark, Level }
+// Skanu efektu veidi
+public enum Skana
+{
+    Klikskis,
+    Labi,
+    Slikti,
+    Monetas,
+    Riet,
+    Limenis
+}
 
-// All sound is synthesised at startup: short effects plus a looping ambience per map zone.
+// AudioManager: visas skanas tiek izveidotas ar kodu (nevajag audio failus).
+// Ir divi veidi: isi skanu efekti un garas fona skanas katrai zonai.
 public class AudioManager : MonoBehaviour
 {
-    const int SR = 22050;
-    const float LoopLen = 8f;
+    const int NolasesBiezums = 22050;     // cik paraugu sekunde
+    const float CiklaIlgums = 8f;         // fona skanas garums sekundes
 
-    AudioSource sfxSource;
-    AudioSource[] amb = new AudioSource[7];
-    AudioClip[] sfx = new AudioClip[6];
-    public bool muted;
+    AudioSource efektuAvots;
+    AudioSource[] fonaAvoti = new AudioSource[7];     // 6 zonas + 1 laukums (centrs)
+    AudioClip[] efekti = new AudioClip[6];
+    public bool izslegts = false;
 
-    public void Build()
+    // ---------------------------------------------------------------
+    // Sakuma izveide
+    // ---------------------------------------------------------------
+    public void Izveidot()
     {
-        sfxSource = gameObject.AddComponent<AudioSource>();
-        sfxSource.playOnAwake = false;
+        efektuAvots = gameObject.AddComponent<AudioSource>();
+        efektuAvots.playOnAwake = false;
 
-        sfx[(int)Sfx.Click] = Clip("click", 0.06f, t => Sine(880, t) * Env(t, 0.06f) * 0.4f);
-        sfx[(int)Sfx.Good] = Clip("good", 0.36f, t => Arp(t, new float[] { 523.25f, 659.25f, 783.99f }, 0.12f) * 0.4f);
-        sfx[(int)Sfx.Bad] = Clip("bad", 0.3f, t => Saw(Mathf.Lerp(220, 150, t / 0.3f), t) * Env(t, 0.3f) * 0.3f);
-        sfx[(int)Sfx.Coin] = Clip("coin", 0.2f, t => (t < 0.07f ? Sine(1319, t) : Sine(1760, t)) * Env(t, 0.2f) * 0.35f);
-        sfx[(int)Sfx.Level] = Clip("level", 0.6f, t => Arp(t, new float[] { 523.25f, 659.25f, 783.99f, 1046.5f }, 0.15f) * 0.4f);
-        sfx[(int)Sfx.Bark] = Clip("bark", 0.4f, t =>
-        {
-            float tt = t % 0.2f;
-            if (t > 0.35f) return 0f;
-            float n = Mathf.Sin(tt * 2f * Mathf.PI * 260f) + Mathf.Sin(tt * 2f * Mathf.PI * 390f) * 0.5f;
-            return n * Mathf.Exp(-tt * 18f) * 0.3f;
-        });
+        efekti[(int)Skana.Klikskis] = IzveidotKlipu("klikskis", IzveidotKlikskaDatus());
+        efekti[(int)Skana.Labi] = IzveidotKlipu("labi", IzveidotLabiDatus());
+        efekti[(int)Skana.Slikti] = IzveidotKlipu("slikti", IzveidotSliktiDatus());
+        efekti[(int)Skana.Monetas] = IzveidotKlipu("monetas", IzveidotMonetuDatus());
+        efekti[(int)Skana.Riet] = IzveidotKlipu("riet", IzveidotRietDatus());
+        efekti[(int)Skana.Limenis] = IzveidotKlipu("limenis", IzveidotLimenaDatus());
 
-        // Ambience, one per zone (+ the open plaza).
-        amb[(int)ZoneType.Home] = Loop("home", t => Chord(t, 130.81f, 164.81f, 196f) * (0.7f + 0.3f * Mathf.Sin(t * 2f * Mathf.PI * 0.25f)) * 0.5f);
-        amb[(int)ZoneType.Park] = Loop("park", ParkSample());
-        amb[(int)ZoneType.Training] = Loop("training", t =>
-        {
-            float gate = Mathf.Max(0f, Mathf.Sin(t * 2f * Mathf.PI * 2f));
-            float[] notes = { 220f, 261.63f, 329.63f, 261.63f };
-            float n = notes[(int)(t * 4f) % 4];
-            return (Tone(110, t) * gate * 0.35f + Tone(n, t) * 0.25f) * 0.7f;
-        });
-        amb[(int)ZoneType.Clinic] = Loop("clinic", t => (Tone(261.63f, t) + Tone(392f, t) * 0.7f) * (0.5f + 0.5f * Mathf.Sin(t * 2f * Mathf.PI * 0.125f)) * 0.3f);
-        amb[(int)ZoneType.Shop] = Loop("shop", t =>
-        {
-            float[] pent = { 523.25f, 587.33f, 659.25f, 783.99f, 880f, 659.25f, 587.33f, 783.99f };
-            int k = (int)(t / 1f); float tt = t - k;
-            return Tone(pent[k % 8], t) * Mathf.Exp(-tt * 4f) * 0.35f + Tone(130.81f, t) * 0.12f;
-        });
-        amb[(int)ZoneType.Welfare] = Loop("welfare", t =>
-        {
-            float chime = (t % 4f) < 1.2f ? Tone(1046.5f, t) * Mathf.Exp(-(t % 4f) * 3f) * 0.25f : 0f;
-            return Chord(t, 196f, 246.94f, 293.66f) * 0.45f + chime;
-        });
-        amb[6] = Loop("plaza", PlazaSample());
+        // Katrai zonai sava fona skana (indekss = zonas numurs)
+        fonaAvoti[(int)ZonasVeids.Maja] = IzveidotFonaAvotu("maja", IzveidotMajasFonu());
+        fonaAvoti[(int)ZonasVeids.Parks] = IzveidotFonaAvotu("parks", IzveidotParkaFonu());
+        fonaAvoti[(int)ZonasVeids.Trenins] = IzveidotFonaAvotu("trenins", IzveidotTreninaFonu());
+        fonaAvoti[(int)ZonasVeids.Klinika] = IzveidotFonaAvotu("klinika", IzveidotKlinikasFonu());
+        fonaAvoti[(int)ZonasVeids.Veikals] = IzveidotFonaAvotu("veikals", IzveidotVeikalaFonu());
+        fonaAvoti[(int)ZonasVeids.Labklajiba] = IzveidotFonaAvotu("labklajiba", IzveidotLabklajibasFonu());
+        fonaAvoti[6] = IzveidotFonaAvotu("laukums", IzveidotLaukumaFonu());
 
-        for (int i = 0; i < amb.Length; i++)
+        // Visi fona avoti tiek ieslēgti, bet ar skaļumu 0. Vēlāk palielinām tikai vajadzīgo.
+        for (int i = 0; i < fonaAvoti.Length; i++)
         {
-            if (amb[i] == null) continue;
-            amb[i].volume = 0f;
-            amb[i].Play();
+            fonaAvoti[i].volume = 0f;
+            fonaAvoti[i].Play();
         }
     }
 
-    public void Play(Sfx s)
+    // Atskano vienu efektu
+    public void Atskanot(Skana veids)
     {
-        if (muted || sfxSource == null) return;
-        sfxSource.PlayOneShot(sfx[(int)s], 0.8f);
+        if (izslegts || efektuAvots == null)
+        {
+            return;
+        }
+        efektuAvots.PlayOneShot(efekti[(int)veids], 0.8f);
     }
 
+    // Katru kadru pieskaņojam fona skanu skaļumu: skan tikai tas, kuras zonas iekšā esam
     void Update()
     {
-        var gm = GameManager.I;
-        int zi = gm.currentZone == null ? 6 : (int)gm.currentZone.type;
-        for (int i = 0; i < amb.Length; i++)
+        GameManager spele = GameManager.Galvenais;
+
+        int aktivaisIndekss = 6;     // 6 = laukums, ja neesam nevienas zonas iekšā
+        if (spele.pasreizejaZona != null)
         {
-            if (amb[i] == null) continue;
-            float target = (!muted && i == zi) ? 0.28f : 0f;
-            amb[i].volume = Mathf.MoveTowards(amb[i].volume, target, Time.unscaledDeltaTime * 0.4f);
+            aktivaisIndekss = (int)spele.pasreizejaZona.veids;
         }
-    }
 
-    // ---- synthesis helpers ----
-    static float Sine(float f, float t) { return Mathf.Sin(2f * Mathf.PI * f * t); }
-    static float Saw(float f, float t) { return ((t * f) % 1f) * 2f - 1f; }
-    static float Env(float t, float len) { return Mathf.Clamp01(1f - t / len) * Mathf.Clamp01(t * 200f); }
-    // Loop-safe tone: frequency snapped so an integer number of cycles fits the 8s loop.
-    static float Tone(float f, float t) { return Mathf.Sin(2f * Mathf.PI * Mathf.Round(f * LoopLen) / LoopLen * t); }
-    static float Chord(float t, float a, float b, float c) { return (Tone(a, t) + Tone(b, t) * 0.8f + Tone(c, t) * 0.6f) * 0.3f; }
-
-    static float Arp(float t, float[] notes, float step)
-    {
-        int i = Mathf.Min(notes.Length - 1, (int)(t / step));
-        float tt = t - i * step;
-        return Sine(notes[i], t) * Mathf.Exp(-tt * 6f) * Mathf.Clamp01(tt * 300f);
-    }
-
-    static Func<float, float> ParkSample()
-    {
-        var rng = new System.Random(3);
-        int n = (int)(SR * LoopLen);
-        float[] wind = new float[n];
-        float lp = 0f;
-        for (int i = 0; i < n; i++)
+        for (int i = 0; i < fonaAvoti.Length; i++)
         {
-            float noise = (float)(rng.NextDouble() * 2 - 1);
-            lp += (noise - lp) * 0.02f;
-            wind[i] = lp * 1.4f * (0.6f + 0.4f * Mathf.Sin(i / (float)SR * 2f * Mathf.PI * 0.125f));
-        }
-        return t =>
-        {
-            int idx = Mathf.Clamp((int)(t * SR), 0, n - 1);
-            float chirp = 0f;
-            float[] starts = { 1f, 3.2f, 5.5f, 6.1f };
-            foreach (float s in starts)
+            if (fonaAvoti[i] == null)
             {
-                float tt = t - s;
-                if (tt >= 0f && tt < 0.18f) chirp += Sine(Mathf.Lerp(2500, 3600, tt / 0.18f), t) * Mathf.Sin(tt / 0.18f * Mathf.PI) * 0.18f;
+                continue;
             }
-            return wind[idx] + chirp;
-        };
-    }
 
-    static Func<float, float> PlazaSample()
-    {
-        var rng = new System.Random(11);
-        int n = (int)(SR * LoopLen);
-        float[] wind = new float[n];
-        float lp = 0f;
-        for (int i = 0; i < n; i++)
-        {
-            lp += ((float)(rng.NextDouble() * 2 - 1) - lp) * 0.012f;
-            wind[i] = lp * 1.2f;
+            float merkaSkalums = 0f;
+            if (izslegts == false && i == aktivaisIndekss)
+            {
+                merkaSkalums = 0.28f;
+            }
+            fonaAvoti[i].volume = Mathf.MoveTowards(fonaAvoti[i].volume, merkaSkalums, Time.unscaledDeltaTime * 0.4f);
         }
-        return t => wind[Mathf.Clamp((int)(t * SR), 0, n - 1)] + Tone(174.6f, t) * 0.05f;
     }
 
-    static AudioClip Clip(string name, float len, Func<float, float> f)
+    // ---------------------------------------------------------------
+    // Palīgfunkcijas skanas veidošanai
+    // ---------------------------------------------------------------
+
+    // Tīra sinusa skana
+    float Sinuss(float frekvence, float laiks)
     {
-        int n = Mathf.CeilToInt(SR * len);
-        var data = new float[n];
-        for (int i = 0; i < n; i++) data[i] = Mathf.Clamp(f(i / (float)SR), -1f, 1f);
-        var c = AudioClip.Create(name, n, 1, SR, false);
-        c.SetData(data, 0);
-        return c;
+        return Mathf.Sin(2f * Mathf.PI * frekvence * laiks);
     }
 
-    AudioSource Loop(string name, Func<float, float> f)
+    // Zāģa skana (skan skarbaka)
+    float Zaga(float frekvence, float laiks)
     {
-        var clip = Clip(name, LoopLen, f);
-        var go = new GameObject("Amb_" + name);
-        go.transform.SetParent(transform, false);
-        var s = go.AddComponent<AudioSource>();
-        s.clip = clip; s.loop = true; s.playOnAwake = false;
-        return s;
+        float dala = (laiks * frekvence) % 1f;
+        return dala * 2f - 1f;
+    }
+
+    // Skaņas skalums laika gaitā: sāk spēcīgi un pakāpeniski izdziest
+    float Apskalojums(float laiks, float ilgums)
+    {
+        float izdzisana = Mathf.Clamp01(1f - laiks / ilgums);
+        float sakums = Mathf.Clamp01(laiks * 200f);
+        return izdzisana * sakums;
+    }
+
+    // Tonis, kas labi atkārtojas ciklā: frekvence tiek noapaļota,
+    // lai 8 sekundēs ietilptu vesels skaits vilnu (nav "klikšķa" cikla beigās)
+    float CiklaTonis(float frekvence, float laiks)
+    {
+        float noapalota = Mathf.Round(frekvence * CiklaIlgums) / CiklaIlgums;
+        return Mathf.Sin(2f * Mathf.PI * noapalota * laiks);
+    }
+
+    // Trīs toņu akords
+    float Akords(float laiks, float a, float b, float c)
+    {
+        float summa = CiklaTonis(a, laiks) + CiklaTonis(b, laiks) * 0.8f + CiklaTonis(c, laiks) * 0.6f;
+        return summa * 0.3f;
+    }
+
+    // Spēlē vairākas notis pēc kārtas (arpedžo)
+    float Arpedzo(float laiks, float[] notis, float notesIlgums)
+    {
+        int indekss = (int)(laiks / notesIlgums);
+        if (indekss > notis.Length - 1)
+        {
+            indekss = notis.Length - 1;
+        }
+        float notesLaiks = laiks - indekss * notesIlgums;
+        float skalums = Mathf.Exp(-notesLaiks * 6f) * Mathf.Clamp01(notesLaiks * 300f);
+        return Sinuss(notis[indekss], laiks) * skalums;
+    }
+
+    // Izveido tukšu skaņas datu masīvu dotajam sekunžu skaitam
+    float[] JaunsMasivs(float sekundes)
+    {
+        int garums = Mathf.CeilToInt(NolasesBiezums * sekundes);
+        return new float[garums];
+    }
+
+    // Skaņas vērtībām jābūt starp -1 un 1
+    float Ierobezot(float vertiba)
+    {
+        return Mathf.Clamp(vertiba, -1f, 1f);
+    }
+
+    AudioClip IzveidotKlipu(string nosaukums, float[] dati)
+    {
+        AudioClip klips = AudioClip.Create(nosaukums, dati.Length, 1, NolasesBiezums, false);
+        klips.SetData(dati, 0);
+        return klips;
+    }
+
+    AudioSource IzveidotFonaAvotu(string nosaukums, float[] dati)
+    {
+        GameObject objekts = new GameObject("Fons_" + nosaukums);
+        objekts.transform.SetParent(transform, false);
+        AudioSource avots = objekts.AddComponent<AudioSource>();
+        avots.clip = IzveidotKlipu(nosaukums, dati);
+        avots.loop = true;
+        avots.playOnAwake = false;
+        return avots;
+    }
+
+    // ---------------------------------------------------------------
+    // Skanu efekti (katrs ir atsevišķa funkcija ar vienkāršu ciklu)
+    // ---------------------------------------------------------------
+    float[] IzveidotKlikskaDatus()
+    {
+        float[] dati = JaunsMasivs(0.06f);
+        for (int i = 0; i < dati.Length; i++)
+        {
+            float t = i / (float)NolasesBiezums;
+            dati[i] = Ierobezot(Sinuss(880f, t) * Apskalojums(t, 0.06f) * 0.4f);
+        }
+        return dati;
+    }
+
+    float[] IzveidotLabiDatus()
+    {
+        float[] notis = { 523.25f, 659.25f, 783.99f };
+        float[] dati = JaunsMasivs(0.36f);
+        for (int i = 0; i < dati.Length; i++)
+        {
+            float t = i / (float)NolasesBiezums;
+            dati[i] = Ierobezot(Arpedzo(t, notis, 0.12f) * 0.4f);
+        }
+        return dati;
+    }
+
+    float[] IzveidotSliktiDatus()
+    {
+        float[] dati = JaunsMasivs(0.3f);
+        for (int i = 0; i < dati.Length; i++)
+        {
+            float t = i / (float)NolasesBiezums;
+            float frekvence = Mathf.Lerp(220f, 150f, t / 0.3f);     // skana krit zemāk
+            dati[i] = Ierobezot(Zaga(frekvence, t) * Apskalojums(t, 0.3f) * 0.3f);
+        }
+        return dati;
+    }
+
+    float[] IzveidotMonetuDatus()
+    {
+        float[] dati = JaunsMasivs(0.2f);
+        for (int i = 0; i < dati.Length; i++)
+        {
+            float t = i / (float)NolasesBiezums;
+            float frekvence = 1760f;
+            if (t < 0.07f)
+            {
+                frekvence = 1319f;      // pirmā īsā nots ir zemāka
+            }
+            dati[i] = Ierobezot(Sinuss(frekvence, t) * Apskalojums(t, 0.2f) * 0.35f);
+        }
+        return dati;
+    }
+
+    float[] IzveidotLimenaDatus()
+    {
+        float[] notis = { 523.25f, 659.25f, 783.99f, 1046.5f };
+        float[] dati = JaunsMasivs(0.6f);
+        for (int i = 0; i < dati.Length; i++)
+        {
+            float t = i / (float)NolasesBiezums;
+            dati[i] = Ierobezot(Arpedzo(t, notis, 0.15f) * 0.4f);
+        }
+        return dati;
+    }
+
+    // Suņa riešana: divi īsi "vau"
+    float[] IzveidotRietDatus()
+    {
+        float[] dati = JaunsMasivs(0.4f);
+        for (int i = 0; i < dati.Length; i++)
+        {
+            float t = i / (float)NolasesBiezums;
+            if (t > 0.35f)
+            {
+                dati[i] = 0f;
+                continue;
+            }
+            float laiksVauIeksa = t % 0.2f;
+            float skana = Mathf.Sin(laiksVauIeksa * 2f * Mathf.PI * 260f) + Mathf.Sin(laiksVauIeksa * 2f * Mathf.PI * 390f) * 0.5f;
+            dati[i] = Ierobezot(skana * Mathf.Exp(-laiksVauIeksa * 18f) * 0.3f);
+        }
+        return dati;
+    }
+
+    // ---------------------------------------------------------------
+    // Fona skanas (katra ir 8 sekunžu cikls, kas atkārtojas)
+    // ---------------------------------------------------------------
+
+    // Vējš: nejaušs troksnis, kas izlīdzināts ar vienkāršu filtru
+    float[] IzveidotVejaTroksni(int sekla, float filtrs, float skalums)
+    {
+        System.Random nejausais = new System.Random(sekla);
+        float[] dati = JaunsMasivs(CiklaIlgums);
+        float izlidzinats = 0f;
+        for (int i = 0; i < dati.Length; i++)
+        {
+            float troksnis = (float)(nejausais.NextDouble() * 2.0 - 1.0);
+            izlidzinats = izlidzinats + (troksnis - izlidzinats) * filtrs;
+            dati[i] = izlidzinats * skalums;
+        }
+        return dati;
+    }
+
+    float[] IzveidotMajasFonu()
+    {
+        float[] dati = JaunsMasivs(CiklaIlgums);
+        for (int i = 0; i < dati.Length; i++)
+        {
+            float t = i / (float)NolasesBiezums;
+            float vilnojums = 0.7f + 0.3f * Mathf.Sin(t * 2f * Mathf.PI * 0.25f);
+            dati[i] = Ierobezot(Akords(t, 130.81f, 164.81f, 196f) * vilnojums * 0.5f);
+        }
+        return dati;
+    }
+
+    float[] IzveidotParkaFonu()
+    {
+        // Pamats ir vējš, kam pieliekam putnu čivināšanu
+        float[] dati = IzveidotVejaTroksni(3, 0.02f, 1.4f);
+        float[] putnuLaiki = { 1f, 3.2f, 5.5f, 6.1f };
+
+        for (int i = 0; i < dati.Length; i++)
+        {
+            float t = i / (float)NolasesBiezums;
+            dati[i] = dati[i] * (0.6f + 0.4f * Mathf.Sin(t * 2f * Mathf.PI * 0.125f));
+
+            for (int p = 0; p < putnuLaiki.Length; p++)
+            {
+                float laiksNoSakuma = t - putnuLaiki[p];
+                if (laiksNoSakuma >= 0f && laiksNoSakuma < 0.18f)
+                {
+                    float frekvence = Mathf.Lerp(2500f, 3600f, laiksNoSakuma / 0.18f);
+                    float apjoms = Mathf.Sin(laiksNoSakuma / 0.18f * Mathf.PI) * 0.18f;
+                    dati[i] = dati[i] + Sinuss(frekvence, t) * apjoms;
+                }
+            }
+            dati[i] = Ierobezot(dati[i]);
+        }
+        return dati;
+    }
+
+    float[] IzveidotTreninaFonu()
+    {
+        float[] notis = { 220f, 261.63f, 329.63f, 261.63f };
+        float[] dati = JaunsMasivs(CiklaIlgums);
+        for (int i = 0; i < dati.Length; i++)
+        {
+            float t = i / (float)NolasesBiezums;
+            float ritms = Mathf.Max(0f, Mathf.Sin(t * 2f * Mathf.PI * 2f));
+            int notesNumurs = (int)(t * 4f) % 4;
+            float skana = CiklaTonis(110f, t) * ritms * 0.35f + CiklaTonis(notis[notesNumurs], t) * 0.25f;
+            dati[i] = Ierobezot(skana * 0.7f);
+        }
+        return dati;
+    }
+
+    float[] IzveidotKlinikasFonu()
+    {
+        float[] dati = JaunsMasivs(CiklaIlgums);
+        for (int i = 0; i < dati.Length; i++)
+        {
+            float t = i / (float)NolasesBiezums;
+            float vilnis = 0.5f + 0.5f * Mathf.Sin(t * 2f * Mathf.PI * 0.125f);
+            float skana = CiklaTonis(261.63f, t) + CiklaTonis(392f, t) * 0.7f;
+            dati[i] = Ierobezot(skana * vilnis * 0.3f);
+        }
+        return dati;
+    }
+
+    float[] IzveidotVeikalaFonu()
+    {
+        float[] notis = { 523.25f, 587.33f, 659.25f, 783.99f, 880f, 659.25f, 587.33f, 783.99f };
+        float[] dati = JaunsMasivs(CiklaIlgums);
+        for (int i = 0; i < dati.Length; i++)
+        {
+            float t = i / (float)NolasesBiezums;
+            int notesNumurs = (int)t;                 // jauna nots katru sekundi
+            float laiksNotes = t - notesNumurs;
+            float zvans = CiklaTonis(notis[notesNumurs % 8], t) * Mathf.Exp(-laiksNotes * 4f) * 0.35f;
+            float basis = CiklaTonis(130.81f, t) * 0.12f;
+            dati[i] = Ierobezot(zvans + basis);
+        }
+        return dati;
+    }
+
+    float[] IzveidotLabklajibasFonu()
+    {
+        float[] dati = JaunsMasivs(CiklaIlgums);
+        for (int i = 0; i < dati.Length; i++)
+        {
+            float t = i / (float)NolasesBiezums;
+            float laiksCikla = t % 4f;
+            float zvanins = 0f;
+            if (laiksCikla < 1.2f)
+            {
+                zvanins = CiklaTonis(1046.5f, t) * Mathf.Exp(-laiksCikla * 3f) * 0.25f;
+            }
+            dati[i] = Ierobezot(Akords(t, 196f, 246.94f, 293.66f) * 0.45f + zvanins);
+        }
+        return dati;
+    }
+
+    float[] IzveidotLaukumaFonu()
+    {
+        float[] dati = IzveidotVejaTroksni(11, 0.012f, 1.2f);
+        for (int i = 0; i < dati.Length; i++)
+        {
+            float t = i / (float)NolasesBiezums;
+            dati[i] = Ierobezot(dati[i] + CiklaTonis(174.6f, t) * 0.05f);
+        }
+        return dati;
     }
 }

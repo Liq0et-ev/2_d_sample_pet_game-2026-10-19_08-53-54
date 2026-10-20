@@ -1,41 +1,67 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// WASD / arrow key movement with simple collision against the map.
+// PlayerMovement: speletaja kustiba ar WASD vai bultinam.
 public class PlayerMovement : MonoBehaviour
 {
-    public float speed = 6f;
-    public Vector2 Facing { get; private set; } = Vector2.right;
-    public bool Moving { get; private set; }
+    public float atrums = 6f;
+    public bool kustas = false;
 
-    static readonly Vector2 Half = new Vector2(0.35f, 0.2f);
-    float bob;
+    // Speletaja "kajas" izmers sadursmem (mazs taisnstūris pie pēdām)
+    Vector2 sadursmesPusIzmers = new Vector2(0.35f, 0.2f);
+
+    // Skaitlis, ar kuru liekam ermenim lēkāt staigajot
+    float lekasanasLaiks = 0f;
 
     void Update()
     {
-        var gm = GameManager.I;
-        var kb = Keyboard.current;
-        Vector2 dir = Vector2.zero;
-        if (kb != null && !gm.ui.Blocking)
+        GameManager spele = GameManager.Galvenais;
+        Keyboard tastatura = Keyboard.current;
+
+        // 1. Noskaidrojam, kuras pogas ir nospiestas
+        Vector2 virziens = Vector2.zero;
+        if (tastatura != null && spele.saskarne.IrBloketa() == false)
         {
-            if (kb.wKey.isPressed || kb.upArrowKey.isPressed) dir.y += 1;
-            if (kb.sKey.isPressed || kb.downArrowKey.isPressed) dir.y -= 1;
-            if (kb.aKey.isPressed || kb.leftArrowKey.isPressed) dir.x -= 1;
-            if (kb.dKey.isPressed || kb.rightArrowKey.isPressed) dir.x += 1;
+            if (tastatura.wKey.isPressed || tastatura.upArrowKey.isPressed) virziens.y = virziens.y + 1;
+            if (tastatura.sKey.isPressed || tastatura.downArrowKey.isPressed) virziens.y = virziens.y - 1;
+            if (tastatura.aKey.isPressed || tastatura.leftArrowKey.isPressed) virziens.x = virziens.x - 1;
+            if (tastatura.dKey.isPressed || tastatura.rightArrowKey.isPressed) virziens.x = virziens.x + 1;
         }
-        Moving = dir.sqrMagnitude > 0.01f;
-        if (Moving)
+
+        // 2. Ja kaut kas ir nospiests, tad kustamies
+        kustas = virziens.sqrMagnitude > 0.01f;
+        if (kustas)
         {
-            dir.Normalize();
-            Facing = dir;
-            Vector2 p = World.Move(transform.position, dir * speed * Time.deltaTime, Half);
-            transform.position = new Vector3(p.x, p.y, 0f);
-            bob += Time.deltaTime * 14f;
-            if (Mathf.Abs(dir.x) > 0.1f)
-                transform.localScale = new Vector3(dir.x > 0 ? 1f : -1f, 1f, 1f);
+            virziens.Normalize();     // lai pa diagonali nebutu atraks
+
+            Vector2 pasreizeja = transform.position;
+            Vector2 solis = virziens * atrums * Time.deltaTime;
+            Vector2 jaunaVieta = Pasaule.Parvietot(pasreizeja, solis, sadursmesPusIzmers);
+            transform.position = new Vector3(jaunaVieta.x, jaunaVieta.y, 0f);
+
+            lekasanasLaiks = lekasanasLaiks + Time.deltaTime * 14f;
+
+            // Pagriežam speletaju uz kreiso vai labo pusi
+            if (virziens.x > 0.1f)
+            {
+                transform.localScale = new Vector3(1f, 1f, 1f);
+            }
+            else if (virziens.x < -0.1f)
+            {
+                transform.localScale = new Vector3(-1f, 1f, 1f);
+            }
         }
-        else bob = 0f;
-        var body = transform.Find("Body");
-        if (body != null) body.localPosition = new Vector3(0, 0.7f + Mathf.Abs(Mathf.Sin(bob)) * 0.06f, 0);
+        else
+        {
+            lekasanasLaiks = 0f;
+        }
+
+        // 3. Neliela lekasana staigajot (ermenis kustas augsup un lejup)
+        Transform ermenis = transform.Find("Ermenis");
+        if (ermenis != null)
+        {
+            float lekasana = Mathf.Abs(Mathf.Sin(lekasanasLaiks)) * 0.06f;
+            ermenis.localPosition = new Vector3(0, 0.7f + lekasana, 0);
+        }
     }
 }

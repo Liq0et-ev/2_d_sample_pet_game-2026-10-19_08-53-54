@@ -1,53 +1,83 @@
 using UnityEngine;
 
-// Coins, inventory, upgrades and passive income.
+// EconomyManager: monetas, inventars, uzlabojumi un pasivie ienakumi.
 public class EconomyManager : MonoBehaviour
 {
-    public int coins = 50;
-    public int food = 3, treats = 2;
-    public bool toy, leash, cones;
-    public int houseLevel, fieldLevel;
-    public int lastPassive;
+    public int monetas = 50;
 
-    public const int MaxUpgrade = 2;
-    const float PassiveInterval = 12f;
-    float timer;
+    // Inventars
+    public int ediens = 3;              // suna barība
+    public int gardumi = 2;
+    public bool irRotallieta = false;
+    public bool irPavada = false;
+    public bool irKonusi = false;
 
-    public void Earn(int n, bool silent = false)
+    // Uzlabojumu limeni
+    public int majasLimenis = 0;
+    public int laukumaLimenis = 0;
+    public const int MaksimalaisUzlabojums = 2;
+
+    // Pasivie ienakumi (nauda, kas nak pati, ja sunim klajas labi)
+    public int pedejaPasivaPelna = 0;
+    const float PasivaIntervals = 12f;      // ik pec 12 sekundem
+    float pasivaisTaimeris = 0f;
+
+    // Pieskaita monetas. Ja "klusi" ir true, tad skana netiek atskanota.
+    public void Nopelnit(int daudzums, bool klusi = false)
     {
-        coins += n;
-        if (!silent) GameManager.I.audioMgr.Play(Sfx.Coin);
+        monetas = monetas + daudzums;
+        if (klusi == false)
+        {
+            GameManager.Galvenais.skana.Atskanot(Skana.Monetas);
+        }
     }
 
-    public bool Spend(int n)
+    // Mēģina iztērēt monetas. Atgriez true, ja pietika naudas.
+    public bool IztereMonetas(int daudzums)
     {
-        if (coins < n)
+        if (monetas < daudzums)
         {
-            GameManager.I.ui.Toast("Nepietiek monētu (vajag " + n + ").");
-            GameManager.I.audioMgr.Play(Sfx.Bad);
+            GameManager.Galvenais.saskarne.Pazinojums("Nepietiek monētu (vajag " + daudzums + ").");
+            GameManager.Galvenais.skana.Atskanot(Skana.Slikti);
             return false;
         }
-        coins -= n;
+        monetas = monetas - daudzums;
         return true;
     }
 
-    // Overall wellbeing 0..1
-    public static float Wellness(DogStatus d)
+    // Suna kopeja labsajutas vertiba no 0 lidz 1 (cetru raditaju videjais)
+    public static float Labsajutas(DogStatus suns)
     {
-        return (d.health + (100f - d.Hunger) + d.energy + d.mood) / 400f;
+        float summa = suns.veseliba + (100f - suns.Izsalkums()) + suns.energija + suns.garastavoklis;
+        return summa / 400f;
     }
 
     void Update()
     {
-        var gm = GameManager.I;
-        if (gm == null || !gm.hasDog || gm.ui.Blocking) return;
-        timer += Time.deltaTime;
-        if (timer < PassiveInterval) return;
-        timer = 0f;
-        var d = gm.dog;
-        float w = Wellness(d);
-        if (d.sick || w <= 0.5f) { lastPassive = 0; return; }
-        lastPassive = Mathf.Max(1, Mathf.RoundToInt((1f + (w - 0.5f) * 6f) * (1f + 0.25f * houseLevel)));
-        Earn(lastPassive, true);
+        GameManager spele = GameManager.Galvenais;
+        if (spele == null || spele.irSuns == false || spele.saskarne.IrBloketa())
+        {
+            return;
+        }
+
+        pasivaisTaimeris = pasivaisTaimeris + Time.deltaTime;
+        if (pasivaisTaimeris < PasivaIntervals)
+        {
+            return;
+        }
+        pasivaisTaimeris = 0f;
+
+        // Ja suns ir slims vai jutas slikti, pasivo ienakumu nav
+        float labsajutas = Labsajutas(spele.suns);
+        if (spele.suns.slims || labsajutas <= 0.5f)
+        {
+            pedejaPasivaPelna = 0;
+            return;
+        }
+
+        float pamats = 1f + (labsajutas - 0.5f) * 6f;
+        float majasPiemaksa = 1f + 0.25f * majasLimenis;
+        pedejaPasivaPelna = Mathf.Max(1, Mathf.RoundToInt(pamats * majasPiemaksa));
+        Nopelnit(pedejaPasivaPelna, true);
     }
 }

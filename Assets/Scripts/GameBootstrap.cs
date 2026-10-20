@@ -1,255 +1,372 @@
 using UnityEngine;
 
-// Builds the whole game at runtime, so pressing Play in any scene starts "Gudrais suns".
+// GameBootstrap: uzbūvē visu spēli, kad nospiež Play.
+// Tas darbojas tikai ainā ar nosaukumu "GudraisSuns", tāpēc citas ainas netiek ietekmētas.
 public static class GameBootstrap
 {
-    public const string SceneName = "GudraisSuns";
+    public const string AinasNosaukums = "GudraisSuns";
 
-    static readonly Color Grass = new Color(0.38f, 0.64f, 0.34f);
-    static readonly Color PathCol = new Color(0.84f, 0.78f, 0.62f);
+    static Color zalesKrasa = new Color(0.38f, 0.64f, 0.34f);
+    static Color celaKrasa = new Color(0.84f, 0.78f, 0.62f);
 
+    // Unity pats izsauc šo funkciju pēc ainas ielādes
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-    static void Start()
+    static void Sakums()
     {
-        // Only run in the dedicated scene so the other sample scenes stay untouched.
-        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != SceneName) return;
-        if (Object.FindFirstObjectByType<GameManager>() != null) return;
-
-        var root = new GameObject("GudraisSuns");
-        var gm = root.AddComponent<GameManager>();
-
-        // ---- world ----
-        var world = new GameObject("World").transform;
-        world.SetParent(root.transform, false);
-        BuildMap(world);
-
-        // ---- camera ----
-        var cam = Camera.main;
-        if (cam == null)
+        // Strādājam tikai savā ainā
+        string pasreizejaAina = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        if (pasreizejaAina != AinasNosaukums)
         {
-            var cgo = new GameObject("Main Camera") { tag = "MainCamera" };
-            cam = cgo.AddComponent<Camera>();
-            cgo.AddComponent<AudioListener>();
+            return;
         }
-        cam.orthographic = true;
-        cam.orthographicSize = 7f;
-        cam.clearFlags = CameraClearFlags.SolidColor;
-        cam.backgroundColor = new Color(0.25f, 0.45f, 0.25f);
-        cam.transform.rotation = Quaternion.identity;
-        cam.transform.position = new Vector3(0, 0, -10);
+        if (Object.FindAnyObjectByType<GameManager>() != null)
+        {
+            return;
+        }
 
-        // ---- player ----
-        var player = Art.BuildPlayer(root.transform);
-        player.transform.position = new Vector3(-4f, -2.5f, 0);
-        player.AddComponent<YSort>();
-        player.AddComponent<PlayerMovement>();
-        gm.player = player.transform;
+        // Galvenais objekts, kuram pieliekam visas sistēmas
+        GameObject sakne = new GameObject("GudraisSuns");
+        GameManager spele = sakne.AddComponent<GameManager>();
 
-        var follow = cam.gameObject.GetComponent<CameraFollow>();
-        if (follow == null) follow = cam.gameObject.AddComponent<CameraFollow>();
-        follow.target = player.transform;
-        follow.Snap();
+        // 1. Pasaule (karte)
+        GameObject pasauleObjekts = new GameObject("Pasaule");
+        pasauleObjekts.transform.SetParent(sakne.transform, false);
+        IzveidotKarti(pasauleObjekts.transform);
 
-        // ---- dog (hidden until received from the welfare centre) ----
-        var dogObj = Art.BuildDog(root.transform);
-        gm.dogObj = dogObj;
-        gm.dog = dogObj.AddComponent<DogStatus>();
-        gm.dogProg = dogObj.AddComponent<DogProgress>();
-        gm.dogFollow = dogObj.AddComponent<DogFollow>();
-        gm.dogFollow.player = player.transform;
-        dogObj.SetActive(false);
+        // 2. Kamera
+        Camera kamera = IestatitKameru();
 
-        // ---- systems ----
-        gm.playerProg = root.AddComponent<PlayerProgress>();
-        gm.economy = root.AddComponent<EconomyManager>();
-        gm.care = root.AddComponent<CareSystem>();
-        gm.training = root.AddComponent<TrainingSystem>();
-        gm.shop = root.AddComponent<ShopSystem>();
-        gm.stick = root.AddComponent<StickGame>();
-        gm.welfare = root.AddComponent<WelfareAndAdoption>();
-        root.AddComponent<InteractionController>();
-        gm.audioMgr = root.AddComponent<AudioManager>();
-        gm.ui = root.AddComponent<UIManager>();
-        gm.audioMgr.Build();
-        gm.ui.Build();
+        // 3. Spēlētājs
+        GameObject speletajs = Maksla.IzveidotSpeletaju(sakne.transform);
+        speletajs.transform.position = new Vector3(-4f, -2.5f, 0);
+        speletajs.AddComponent<YKartosana>();
+        speletajs.AddComponent<PlayerMovement>();
+        spele.speletajs = speletajs.transform;
 
-        gm.ui.OpenMenu(IntroMenu);
+        CameraFollow kamerasSekosana = kamera.gameObject.GetComponent<CameraFollow>();
+        if (kamerasSekosana == null)
+        {
+            kamerasSekosana = kamera.gameObject.AddComponent<CameraFollow>();
+        }
+        kamerasSekosana.merkis = speletajs.transform;
+        kamerasSekosana.Pielekt();
+
+        // 4. Suns (paslēpts, kamēr spēlētājs to nesaņem labklājības centrā)
+        GameObject sunaObjekts = Maksla.IzveidotSunu(sakne.transform);
+        spele.sunaObjekts = sunaObjekts;
+        spele.suns = sunaObjekts.AddComponent<DogStatus>();
+        spele.sunaProgress = sunaObjekts.AddComponent<DogProgress>();
+        spele.sunaSekosana = sunaObjekts.AddComponent<DogFollow>();
+        spele.sunaSekosana.speletajs = speletajs.transform;
+        sunaObjekts.SetActive(false);
+
+        // 5. Spēles sistēmas
+        spele.speletajaProgress = sakne.AddComponent<PlayerProgress>();
+        spele.ekonomika = sakne.AddComponent<EconomyManager>();
+        spele.aprupe = sakne.AddComponent<CareSystem>();
+        spele.trenins = sakne.AddComponent<TrainingSystem>();
+        spele.veikals = sakne.AddComponent<ShopSystem>();
+        spele.nujasSpele = sakne.AddComponent<NujasSpele>();
+        spele.labklajiba = sakne.AddComponent<WelfareAndAdoption>();
+        sakne.AddComponent<InteractionController>();
+        spele.skana = sakne.AddComponent<AudioManager>();
+        spele.saskarne = sakne.AddComponent<UIManager>();
+        spele.skana.Izveidot();
+        spele.saskarne.Izveidot();
+
+        // 6. Ievada izvēlne
+        spele.saskarne.AtvertIzvelni(IevadaIzvelne);
     }
 
-    static MenuDef IntroMenu()
+    // Atrod (vai izveido) kameru un iestata to 2D spēlei
+    static Camera IestatitKameru()
     {
-        var m = new MenuDef { title = "GUDRAIS SUNS" };
-        m.body = "Mierīga 2D suņu aprūpes, apmācības un menedžmenta spēle.\n\n" +
-                 "Saņem suņus no dzīvnieku labklājības centra, rūpējies par tiem, iemāci komandas un sagatavo adopcijai. " +
-                 "Par panākumiem saņem monētas un pieredzi centra attīstīšanai. Mērķis – 10 veiksmīgas adopcijas.\n\n" +
-                 "WASD – kustība   |   E – mijiedarbība   |   Pele – izvēlnes   |   ESC – pauze";
-        m.closeLabel = "Sākt spēli";
-        return m;
+        Camera kamera = Camera.main;
+        if (kamera == null)
+        {
+            GameObject kameraObjekts = new GameObject("Main Camera");
+            kameraObjekts.tag = "MainCamera";
+            kamera = kameraObjekts.AddComponent<Camera>();
+            kameraObjekts.AddComponent<AudioListener>();
+        }
+        kamera.orthographic = true;
+        kamera.orthographicSize = 7f;
+        kamera.clearFlags = CameraClearFlags.SolidColor;
+        kamera.backgroundColor = new Color(0.25f, 0.45f, 0.25f);
+        kamera.transform.rotation = Quaternion.identity;
+        kamera.transform.position = new Vector3(0, 0, -10);
+        return kamera;
     }
 
-    // ------------------------------------------------------------------ map
-    static Color Shade(Color c, float k) { return new Color(c.r * k, c.g * k, c.b * k, 1f); }
-
-    static void BuildMap(Transform root)
+    static IzvelnesApraksts IevadaIzvelne()
     {
-        World.Blockers.Clear();
+        IzvelnesApraksts izvelne = new IzvelnesApraksts();
+        izvelne.virsraksts = "GUDRAIS SUNS";
+        izvelne.teksts = "Mierīga 2D suņu aprūpes, apmācības un menedžmenta spēle.\n\n" +
+                         "Saņem suņus no dzīvnieku labklājības centra, rūpējies par tiem, iemāci komandas un sagatavo adopcijai. " +
+                         "Par panākumiem saņem monētas un pieredzi centra attīstīšanai. Mērķis – 10 veiksmīgas adopcijas.\n\n" +
+                         "WASD – kustība   |   E – mijiedarbība   |   Pele – izvēlnes   |   ESC – pauze";
+        izvelne.aizvertPogasTeksts = "Sākt spēli";
+        return izvelne;
+    }
 
-        Art.Make("Grass", root, false, Vector2.zero, new Vector2(80, 50), Grass, -10000);
-        foreach (var z in World.Zones)
-            Art.Make("Area_" + z.type, root, false, z.center, new Vector2(World.ZoneHalf.x * 2, World.ZoneHalf.y * 2), z.tint, -9900);
+    // Palīgfunkcija: padara krāsu tumšāku (reizina ar skaitli mazāku par 1)
+    static Color Tumsinat(Color krasa, float koeficients)
+    {
+        return new Color(krasa.r * koeficients, krasa.g * koeficients, krasa.b * koeficients, 1f);
+    }
 
-        // paths
-        Art.Make("PathH", root, false, Vector2.zero, new Vector2(62, 2.4f), PathCol, -9800);
-        foreach (var z in World.Zones)
+    // =================================================================
+    // KARTES UZBŪVE
+    // =================================================================
+    static void IzveidotKarti(Transform sakne)
+    {
+        Pasaule.Barjeras.Clear();
+
+        IzveidotZaleUnCelus(sakne);
+        IzveidotStruklaku(sakne);
+
+        // Ēkas
+        IzveidotEku(sakne, Pasaule.AtrastZonu(ZonasVeids.Labklajiba), new Vector2(7.5f, 4.2f), new Color(0.93f, 0.88f, 0.76f), new Color(0.35f, 0.55f, 0.75f));
+        IzveidotEku(sakne, Pasaule.AtrastZonu(ZonasVeids.Maja), new Vector2(6.5f, 4.2f), new Color(0.96f, 0.85f, 0.7f), new Color(0.75f, 0.3f, 0.25f));
+        IzveidotEku(sakne, Pasaule.AtrastZonu(ZonasVeids.Veikals), new Vector2(7f, 4.2f), new Color(0.95f, 0.9f, 0.6f), new Color(0.85f, 0.55f, 0.2f));
+        IzveidotEku(sakne, Pasaule.AtrastZonu(ZonasVeids.Klinika), new Vector2(7.5f, 4.2f), new Color(0.95f, 0.95f, 0.97f), new Color(0.8f, 0.2f, 0.25f));
+
+        // Treniņu laukums un parks (nav ēkas)
+        IzveidotTreninuLaukumu(sakne, Pasaule.AtrastZonu(ZonasVeids.Trenins));
+        IzveidotParku(sakne, Pasaule.AtrastZonu(ZonasVeids.Parks));
+
+        IzveidotKokus(sakne);
+    }
+
+    // Zāle, zonu laukumi un ceļi
+    static void IzveidotZaleUnCelus(Transform sakne)
+    {
+        Maksla.IzveidotFormu("Zale", sakne, false, Vector2.zero, new Vector2(80, 50), zalesKrasa, -10000);
+
+        // Katrai zonai nedaudz atšķirīgs zāles tonis
+        for (int i = 0; i < Pasaule.Zonas.Length; i++)
         {
-            float len = Mathf.Abs(z.interact.y);
-            Art.Make("PathV_" + z.type, root, false, new Vector2(z.center.x, z.interact.y * 0.5f), new Vector2(2.4f, len), PathCol, -9800);
-            Art.Make("Doormat_" + z.type, root, true, z.interact, new Vector2(2.6f, 1.2f), Shade(PathCol, 0.9f), -9790);
+            ZonasInfo zona = Pasaule.Zonas[i];
+            Vector2 izmers = new Vector2(Pasaule.ZonasPusIzmers.x * 2, Pasaule.ZonasPusIzmers.y * 2);
+            Maksla.IzveidotFormu("Laukums_" + zona.veids, sakne, false, zona.centrs, izmers, zona.krasa, -9900);
         }
 
-        // plaza fountain
-        Art.Make("PlazaRing", root, true, Vector2.zero, new Vector2(7f, 5f), Shade(PathCol, 0.95f), -9780);
-        Art.Make("FountainBase", root, true, new Vector2(0, 0.1f), new Vector2(3.4f, 2.3f), new Color(0.65f, 0.65f, 0.7f), -9770);
-        Art.Make("FountainWater", root, true, new Vector2(0, 0.1f), new Vector2(2.9f, 1.9f), new Color(0.35f, 0.65f, 0.9f), -9760);
-        Art.Make("FountainJet", root, false, new Vector2(0, 0.7f), new Vector2(0.18f, 0.9f), new Color(0.8f, 0.92f, 1f), 100);
-        World.Blockers.Add(new Rect(-1.4f, -0.7f, 2.8f, 1.5f));
-        Art.LabelWithShadow("Centrs", root, new Vector2(0, -1.9f), 0.55f, new Color(1, 1, 1, 0.9f), -9000);
+        // Galvenais horizontālais ceļš
+        Maksla.IzveidotFormu("CelsH", sakne, false, Vector2.zero, new Vector2(62, 2.4f), celaKrasa, -9800);
 
-        // buildings
-        MakeBuilding(root, World.Get(ZoneType.Welfare), new Vector2(7.5f, 4.2f), new Color(0.93f, 0.88f, 0.76f), new Color(0.35f, 0.55f, 0.75f));
-        MakeBuilding(root, World.Get(ZoneType.Home), new Vector2(6.5f, 4.2f), new Color(0.96f, 0.85f, 0.7f), new Color(0.75f, 0.3f, 0.25f));
-        MakeBuilding(root, World.Get(ZoneType.Shop), new Vector2(7f, 4.2f), new Color(0.95f, 0.9f, 0.6f), new Color(0.85f, 0.55f, 0.2f));
-        MakeBuilding(root, World.Get(ZoneType.Clinic), new Vector2(7.5f, 4.2f), new Color(0.95f, 0.95f, 0.97f), new Color(0.8f, 0.2f, 0.25f));
-        BuildTraining(root, World.Get(ZoneType.Training));
-        BuildPark(root, World.Get(ZoneType.Park));
-
-        // trees
-        var rng = new System.Random(7);
-        int placed = 0, tries = 0;
-        while (placed < 70 && tries < 2000)
+        // Vertikāls ceļš uz katru zonu
+        for (int i = 0; i < Pasaule.Zonas.Length; i++)
         {
-            tries++;
-            float x = (float)(rng.NextDouble() * 60 - 30);
-            float y = (float)(rng.NextDouble() * 36 - 18);
-            if (TreeBlocked(new Vector2(x, y))) continue;
-            Tree(root, new Vector2(x, y));
-            placed++;
+            ZonasInfo zona = Pasaule.Zonas[i];
+            float garums = Mathf.Abs(zona.mijiedarbibasPunkts.y);
+            Vector2 vidus = new Vector2(zona.centrs.x, zona.mijiedarbibasPunkts.y * 0.5f);
+            Maksla.IzveidotFormu("CelsV_" + zona.veids, sakne, false, vidus, new Vector2(2.4f, garums), celaKrasa, -9800);
+            Maksla.IzveidotFormu("Paklajs_" + zona.veids, sakne, true, zona.mijiedarbibasPunkts, new Vector2(2.6f, 1.2f), Tumsinat(celaKrasa, 0.9f), -9790);
         }
     }
 
-    static bool TreeBlocked(Vector2 p)
+    // Strūklaka kartes vidū
+    static void IzveidotStruklaku(Transform sakne)
     {
-        if (Mathf.Abs(p.y) < 3.2f) return true;                      // central road / plaza
-        foreach (var z in World.Zones)
+        Maksla.IzveidotFormu("LaukumaGredzens", sakne, true, Vector2.zero, new Vector2(7f, 5f), Tumsinat(celaKrasa, 0.95f), -9780);
+        Maksla.IzveidotFormu("StruklakasPamats", sakne, true, new Vector2(0, 0.1f), new Vector2(3.4f, 2.3f), new Color(0.65f, 0.65f, 0.7f), -9770);
+        Maksla.IzveidotFormu("StruklakasUdens", sakne, true, new Vector2(0, 0.1f), new Vector2(2.9f, 1.9f), new Color(0.35f, 0.65f, 0.9f), -9760);
+        Maksla.IzveidotFormu("StruklakasStrukla", sakne, false, new Vector2(0, 0.7f), new Vector2(0.18f, 0.9f), new Color(0.8f, 0.92f, 1f), 100);
+        Pasaule.Barjeras.Add(new Rect(-1.4f, -0.7f, 2.8f, 1.5f));
+        Maksla.IzveidotTekstuArVaru("Centrs", sakne, new Vector2(0, -1.9f), 0.55f, new Color(1, 1, 1, 0.9f), -9000);
+    }
+
+    // Uzbūvē vienu ēku (labklājības centrs, māja, veikals vai klīnika)
+    static void IzveidotEku(Transform sakne, ZonasInfo zona, Vector2 izmers, Color sienuKrasa, Color jumtaKrasa)
+    {
+        // Augšējās zonas ēka ir augstāk (y = 14), apakšējās zemāk (y = -14)
+        float ekasY = -14f;
+        if (zona.centrs.y > 0)
         {
-            if (Mathf.Abs(p.x - z.center.x) < 2.6f) return true;       // vertical paths
-            if (Vector2.Distance(p, z.interact) < 4f) return true;
+            ekasY = 14f;
         }
-        foreach (var b in World.Blockers)
+        Vector2 centrs = new Vector2(zona.centrs.x, ekasY);
+        int kartiba = Mathf.RoundToInt(-(centrs.y - izmers.y * 0.5f) * 20f);
+
+        GameObject eka = new GameObject("Eka_" + zona.veids);
+        eka.transform.SetParent(sakne, false);
+        eka.transform.localPosition = centrs;
+        Transform t = eka.transform;
+
+        Maksla.IzveidotFormu("Vara", t, false, new Vector2(0.4f, -izmers.y * 0.5f - 0.1f), new Vector2(izmers.x + 0.5f, 0.5f), new Color(0, 0, 0, 0.2f), -9500);
+        Maksla.IzveidotFormu("Siena", t, false, Vector2.zero, izmers, sienuKrasa, kartiba);
+        Maksla.IzveidotFormu("Jumts", t, false, new Vector2(0, izmers.y * 0.22f), new Vector2(izmers.x + 0.4f, izmers.y * 0.56f), jumtaKrasa, kartiba + 1);
+        Maksla.IzveidotFormu("JumtaMala", t, false, new Vector2(0, -izmers.y * 0.06f), new Vector2(izmers.x + 0.4f, 0.14f), Tumsinat(jumtaKrasa, 0.7f), kartiba + 2);
+        Maksla.IzveidotFormu("Durvis", t, false, new Vector2(0, -izmers.y * 0.5f + 0.7f), new Vector2(1.0f, 1.4f), new Color(0.4f, 0.26f, 0.15f), kartiba + 2);
+        Maksla.IzveidotFormu("LogsKreisais", t, false, new Vector2(-izmers.x * 0.3f, -izmers.y * 0.5f + 1.1f), new Vector2(0.9f, 0.8f), new Color(0.7f, 0.88f, 1f), kartiba + 2);
+        Maksla.IzveidotFormu("LogsLabais", t, false, new Vector2(izmers.x * 0.3f, -izmers.y * 0.5f + 1.1f), new Vector2(0.9f, 0.8f), new Color(0.7f, 0.88f, 1f), kartiba + 2);
+
+        // Katrai ēkai savs atpazīšanas zīmējums
+        if (zona.veids == ZonasVeids.Klinika)
         {
-            var r = new Rect(b.xMin - 2f, b.yMin - 2f, b.width + 4f, b.height + 4f);
-            if (r.Contains(p)) return true;
+            // Balts krusts uz jumta
+            Maksla.IzveidotFormu("KrustsVertikali", t, false, new Vector2(0, izmers.y * 0.22f), new Vector2(0.4f, 1.3f), Color.white, kartiba + 3);
+            Maksla.IzveidotFormu("KrustsHorizontali", t, false, new Vector2(0, izmers.y * 0.22f), new Vector2(1.3f, 0.4f), Color.white, kartiba + 3);
         }
-        // keep training field and park pond free
-        var tz = World.Get(ZoneType.Training);
-        if (Mathf.Abs(p.x - tz.center.x) < 7.5f && Mathf.Abs(p.y - tz.center.y) < 5f) return true;
+        if (zona.veids == ZonasVeids.Veikals)
+        {
+            Maksla.IzveidotFormu("Markize", t, false, new Vector2(0, -izmers.y * 0.5f + 1.8f), new Vector2(izmers.x * 0.8f, 0.35f), new Color(0.9f, 0.3f, 0.3f), kartiba + 3);
+        }
+        if (zona.veids == ZonasVeids.Labklajiba)
+        {
+            Maksla.IzveidotFormu("Kepa", t, true, new Vector2(0, izmers.y * 0.22f), new Vector2(0.9f, 0.8f), new Color(1f, 0.95f, 0.8f), kartiba + 3);
+        }
+
+        // Ēka ir siena, kurai cauri nevar iet
+        Rect barjera = new Rect(centrs.x - izmers.x * 0.5f, centrs.y - izmers.y * 0.5f, izmers.x, izmers.y);
+        Pasaule.Barjeras.Add(barjera);
+
+        // Nosaukums virs ēkas
+        float tekstaY = centrs.y + izmers.y * 0.5f + 0.9f;
+        Maksla.IzveidotTekstuArVaru(zona.nosaukums, sakne, new Vector2(centrs.x, tekstaY), 0.7f, Color.white, 8000);
+    }
+
+    static void IzveidotTreninuLaukumu(Transform sakne, ZonasInfo zona)
+    {
+        Vector2 c = zona.centrs;
+        Maksla.IzveidotFormu("Laukums", sakne, false, new Vector2(c.x, c.y + 2f), new Vector2(15f, 8.4f), new Color(0.78f, 0.72f, 0.5f), -9700);
+        Maksla.IzveidotFormu("LaukumaIekspuse", sakne, false, new Vector2(c.x, c.y + 2f), new Vector2(14.2f, 7.6f), new Color(0.55f, 0.74f, 0.4f), -9690);
+
+        // Žogs ap laukumu
+        Color zogaKrasa = new Color(0.95f, 0.95f, 0.9f);
+        Maksla.IzveidotFormu("ZogsAugsa", sakne, false, new Vector2(c.x, c.y + 6.2f), new Vector2(15f, 0.18f), zogaKrasa, -9680);
+        Maksla.IzveidotFormu("ZogsKreisais", sakne, false, new Vector2(c.x - 7.5f, c.y + 2f), new Vector2(0.18f, 8.4f), zogaKrasa, -9680);
+        Maksla.IzveidotFormu("ZogsLabais", sakne, false, new Vector2(c.x + 7.5f, c.y + 2f), new Vector2(0.18f, 8.4f), zogaKrasa, -9680);
+
+        // Pieci konusi rindā
+        for (int i = 0; i < 5; i++)
+        {
+            Vector2 vieta = new Vector2(c.x - 5f + i * 2.5f, c.y + 3.6f);
+            int kartiba = Mathf.RoundToInt(-vieta.y * 20f);
+            Maksla.IzveidotFormu("Konuss", sakne, true, vieta + new Vector2(0, 0.25f), new Vector2(0.6f, 0.7f), new Color(1f, 0.5f, 0.1f), kartiba);
+            Maksla.IzveidotFormu("KonusaSvitra", sakne, false, vieta + new Vector2(0, 0.3f), new Vector2(0.4f, 0.1f), Color.white, kartiba + 1);
+        }
+
+        // Barjera (lēkšanai) un tunelis
+        Color barjerasKrasa = new Color(0.8f, 0.3f, 0.3f);
+        Maksla.IzveidotFormu("BarjerasStienis", sakne, false, new Vector2(c.x - 4f, c.y + 1.4f), new Vector2(2.4f, 0.14f), Color.white, -9000);
+        Maksla.IzveidotFormu("BarjerasKreisais", sakne, false, new Vector2(c.x - 5.1f, c.y + 1.2f), new Vector2(0.14f, 0.7f), barjerasKrasa, -9000);
+        Maksla.IzveidotFormu("BarjerasLabais", sakne, false, new Vector2(c.x - 2.9f, c.y + 1.2f), new Vector2(0.14f, 0.7f), barjerasKrasa, -9000);
+        Maksla.IzveidotFormu("Tunelis", sakne, true, new Vector2(c.x + 4f, c.y + 1.6f), new Vector2(3.2f, 1.7f), new Color(0.3f, 0.45f, 0.75f), -9000);
+        Maksla.IzveidotFormu("TunelaCaurums", sakne, true, new Vector2(c.x + 4.9f, c.y + 1.6f), new Vector2(0.8f, 1.2f), new Color(0.08f, 0.1f, 0.2f), -8999);
+        Maksla.IzveidotFormu("Zime", sakne, false, zona.mijiedarbibasPunkts + new Vector2(2.2f, 0.4f), new Vector2(1.6f, 0.9f), new Color(0.5f, 0.35f, 0.2f), -8000);
+
+        Maksla.IzveidotTekstuArVaru(zona.nosaukums, sakne, new Vector2(c.x, c.y + 6.9f), 0.7f, Color.white, 8000);
+    }
+
+    static void IzveidotParku(Transform sakne, ZonasInfo zona)
+    {
+        Vector2 c = zona.centrs;
+        Vector2 diki = new Vector2(c.x + 4f, c.y + 3.2f);
+
+        // Dīķis (ūdens, kuram cauri nevar iet)
+        Maksla.IzveidotFormu("DikaMala", sakne, true, diki, new Vector2(7.4f, 4.4f), new Color(0.75f, 0.7f, 0.5f), -9700);
+        Maksla.IzveidotFormu("Diki", sakne, true, diki, new Vector2(6.8f, 3.9f), new Color(0.3f, 0.6f, 0.85f), -9690);
+        Maksla.IzveidotFormu("Lapa", sakne, true, diki + new Vector2(-1f, 0.3f), new Vector2(0.7f, 0.45f), new Color(0.3f, 0.7f, 0.35f), -9680);
+        Pasaule.Barjeras.Add(new Rect(diki.x - 2.8f, diki.y - 1.5f, 5.6f, 3f));
+
+        // Sols pie mijiedarbības vietas
+        Maksla.IzveidotFormu("SolaSedeklis", sakne, false, zona.mijiedarbibasPunkts + new Vector2(-2.6f, 0.2f), new Vector2(1.8f, 0.4f), new Color(0.55f, 0.37f, 0.2f), -8000);
+        Maksla.IzveidotFormu("SolaMugura", sakne, false, zona.mijiedarbibasPunkts + new Vector2(-2.6f, 0.55f), new Vector2(1.8f, 0.2f), new Color(0.45f, 0.3f, 0.16f), -7999);
+
+        // Ziedi (nejauši izkaisīti, bet vienmēr vienādi, jo "sēkla" ir 5)
+        System.Random nejausais = new System.Random(5);
+        Color[] ziedaKrasas =
+        {
+            new Color(1f, 0.5f, 0.6f),
+            new Color(1f, 0.9f, 0.3f),
+            new Color(0.8f, 0.6f, 1f),
+            Color.white
+        };
+        for (int i = 0; i < 40; i++)
+        {
+            float x = c.x + (float)(nejausais.NextDouble() * 18 - 9);
+            float y = c.y + (float)(nejausais.NextDouble() * 12 - 4);
+            Vector2 vieta = new Vector2(x, y);
+
+            // Neliekam ziedus uz ceļa un uz dīķa
+            if (Mathf.Abs(vieta.x - c.x) < 1.6f) continue;
+            if (Vector2.Distance(vieta, diki) < 3.9f) continue;
+
+            Maksla.IzveidotFormu("Zieds", sakne, true, vieta, new Vector2(0.22f, 0.22f), ziedaKrasas[i % 4], -9600);
+        }
+
+        Maksla.IzveidotTekstuArVaru(zona.nosaukums, sakne, new Vector2(c.x, c.y + 6.4f), 0.7f, Color.white, 8000);
+    }
+
+    // Izkaisa kokus pa karti (tikai tur, kur tie netraucē)
+    static void IzveidotKokus(Transform sakne)
+    {
+        System.Random nejausais = new System.Random(7);
+        int ievietoti = 0;
+        int meginajumi = 0;
+
+        while (ievietoti < 70 && meginajumi < 2000)
+        {
+            meginajumi = meginajumi + 1;
+            float x = (float)(nejausais.NextDouble() * 60 - 30);
+            float y = (float)(nejausais.NextDouble() * 36 - 18);
+            Vector2 vieta = new Vector2(x, y);
+
+            if (VaiKokaVietaAiznemta(vieta))
+            {
+                continue;
+            }
+            IzveidotKoku(sakne, vieta);
+            ievietoti = ievietoti + 1;
+        }
+    }
+
+    // Vai šajā vietā nedrīkst likt koku?
+    static bool VaiKokaVietaAiznemta(Vector2 vieta)
+    {
+        // Galvenais ceļš un centrs
+        if (Mathf.Abs(vieta.y) < 3.2f) return true;
+
+        // Ceļi uz zonām un mijiedarbības vietas
+        for (int i = 0; i < Pasaule.Zonas.Length; i++)
+        {
+            ZonasInfo zona = Pasaule.Zonas[i];
+            if (Mathf.Abs(vieta.x - zona.centrs.x) < 2.6f) return true;
+            if (Vector2.Distance(vieta, zona.mijiedarbibasPunkts) < 4f) return true;
+        }
+
+        // Pie ēkām un citām barjerām
+        for (int i = 0; i < Pasaule.Barjeras.Count; i++)
+        {
+            Rect b = Pasaule.Barjeras[i];
+            Rect paplasinata = new Rect(b.xMin - 2f, b.yMin - 2f, b.width + 4f, b.height + 4f);
+            if (paplasinata.Contains(vieta)) return true;
+        }
+
+        // Treniņu laukums jāpatur tīrs
+        ZonasInfo trenins = Pasaule.AtrastZonu(ZonasVeids.Trenins);
+        if (Mathf.Abs(vieta.x - trenins.centrs.x) < 7.5f && Mathf.Abs(vieta.y - trenins.centrs.y) < 5f) return true;
+
         return false;
     }
 
-    static void Tree(Transform root, Vector2 p)
+    static void IzveidotKoku(Transform sakne, Vector2 vieta)
     {
-        int b = Mathf.RoundToInt(-p.y * 20f);
-        var tree = new GameObject("Tree").transform;
-        tree.SetParent(root, false);
-        tree.localPosition = p;
-        Art.Make("Shadow", tree, true, new Vector2(0, 0), new Vector2(1.6f, 0.5f), new Color(0, 0, 0, 0.25f), -9500);
-        Art.Make("Trunk", tree, false, new Vector2(0, 0.4f), new Vector2(0.35f, 0.8f), new Color(0.4f, 0.27f, 0.15f), b);
-        Art.Make("Canopy", tree, true, new Vector2(0, 1.5f), new Vector2(2.1f, 2f), new Color(0.2f, 0.5f, 0.25f), b + 1);
-        Art.Make("CanopyHi", tree, true, new Vector2(-0.3f, 1.8f), new Vector2(1.2f, 1.1f), new Color(0.28f, 0.6f, 0.3f), b + 2);
-        World.Blockers.Add(new Rect(p.x - 0.3f, p.y - 0.1f, 0.6f, 0.5f));
-    }
+        int kartiba = Mathf.RoundToInt(-vieta.y * 20f);
 
-    static void MakeBuilding(Transform root, ZoneInfo z, Vector2 size, Color wall, Color roof)
-    {
-        bool top = z.center.y > 0;
-        Vector2 c = new Vector2(z.center.x, top ? 14f : -14f);
-        int b = Mathf.RoundToInt(-(c.y - size.y * 0.5f) * 20f);
-        var g = new GameObject("Building_" + z.type).transform;
-        g.SetParent(root, false);
-        g.localPosition = c;
+        GameObject koks = new GameObject("Koks");
+        koks.transform.SetParent(sakne, false);
+        koks.transform.localPosition = vieta;
+        Transform t = koks.transform;
 
-        Art.Make("Shadow", g, false, new Vector2(0.4f, -size.y * 0.5f - 0.1f), new Vector2(size.x + 0.5f, 0.5f), new Color(0, 0, 0, 0.2f), -9500);
-        Art.Make("Wall", g, false, Vector2.zero, size, wall, b);
-        Art.Make("Roof", g, false, new Vector2(0, size.y * 0.22f), new Vector2(size.x + 0.4f, size.y * 0.56f), roof, b + 1);
-        Art.Make("RoofEdge", g, false, new Vector2(0, -size.y * 0.06f), new Vector2(size.x + 0.4f, 0.14f), Shade(roof, 0.7f), b + 2);
-        Art.Make("Door", g, false, new Vector2(0, -size.y * 0.5f + 0.7f), new Vector2(1.0f, 1.4f), new Color(0.4f, 0.26f, 0.15f), b + 2);
-        Art.Make("WinL", g, false, new Vector2(-size.x * 0.3f, -size.y * 0.5f + 1.1f), new Vector2(0.9f, 0.8f), new Color(0.7f, 0.88f, 1f), b + 2);
-        Art.Make("WinR", g, false, new Vector2(size.x * 0.3f, -size.y * 0.5f + 1.1f), new Vector2(0.9f, 0.8f), new Color(0.7f, 0.88f, 1f), b + 2);
+        Maksla.IzveidotFormu("Vara", t, true, Vector2.zero, new Vector2(1.6f, 0.5f), new Color(0, 0, 0, 0.25f), -9500);
+        Maksla.IzveidotFormu("Stumbrs", t, false, new Vector2(0, 0.4f), new Vector2(0.35f, 0.8f), new Color(0.4f, 0.27f, 0.15f), kartiba);
+        Maksla.IzveidotFormu("Lapotne", t, true, new Vector2(0, 1.5f), new Vector2(2.1f, 2f), new Color(0.2f, 0.5f, 0.25f), kartiba + 1);
+        Maksla.IzveidotFormu("LapotnesGaisma", t, true, new Vector2(-0.3f, 1.8f), new Vector2(1.2f, 1.1f), new Color(0.28f, 0.6f, 0.3f), kartiba + 2);
 
-        // signs
-        if (z.type == ZoneType.Clinic)
-        {
-            Art.Make("CrossV", g, false, new Vector2(0, size.y * 0.22f), new Vector2(0.4f, 1.3f), Color.white, b + 3);
-            Art.Make("CrossH", g, false, new Vector2(0, size.y * 0.22f), new Vector2(1.3f, 0.4f), Color.white, b + 3);
-        }
-        if (z.type == ZoneType.Shop)
-            Art.Make("Awning", g, false, new Vector2(0, -size.y * 0.5f + 1.8f), new Vector2(size.x * 0.8f, 0.35f), new Color(0.9f, 0.3f, 0.3f), b + 3);
-        if (z.type == ZoneType.Welfare)
-            Art.Make("Paw", g, true, new Vector2(0, size.y * 0.22f), new Vector2(0.9f, 0.8f), new Color(1f, 0.95f, 0.8f), b + 3);
-
-        World.Blockers.Add(new Rect(c.x - size.x * 0.5f, c.y - size.y * 0.5f, size.x, size.y));
-        float labelY = top ? c.y + size.y * 0.5f + 0.9f : c.y + size.y * 0.5f + 0.9f;
-        Art.LabelWithShadow(z.name, root, new Vector2(c.x, labelY), 0.7f, Color.white, 8000);
-    }
-
-    static void BuildTraining(Transform root, ZoneInfo z)
-    {
-        var c = z.center;
-        Art.Make("Field", root, false, new Vector2(c.x, c.y + 2f), new Vector2(15f, 8.4f), new Color(0.78f, 0.72f, 0.5f), -9700);
-        Art.Make("FieldIn", root, false, new Vector2(c.x, c.y + 2f), new Vector2(14.2f, 7.6f), new Color(0.55f, 0.74f, 0.4f), -9690);
-        // fence
-        Color fence = new Color(0.95f, 0.95f, 0.9f);
-        Art.Make("FenceT", root, false, new Vector2(c.x, c.y + 6.2f), new Vector2(15f, 0.18f), fence, -9680);
-        Art.Make("FenceL", root, false, new Vector2(c.x - 7.5f, c.y + 2f), new Vector2(0.18f, 8.4f), fence, -9680);
-        Art.Make("FenceR", root, false, new Vector2(c.x + 7.5f, c.y + 2f), new Vector2(0.18f, 8.4f), fence, -9680);
-        // cones
-        for (int i = 0; i < 5; i++)
-        {
-            var p = new Vector2(c.x - 5f + i * 2.5f, c.y + 3.6f);
-            Art.Make("Cone", root, true, p + new Vector2(0, 0.25f), new Vector2(0.6f, 0.7f), new Color(1f, 0.5f, 0.1f), Mathf.RoundToInt(-p.y * 20f));
-            Art.Make("ConeStripe", root, false, p + new Vector2(0, 0.3f), new Vector2(0.4f, 0.1f), Color.white, Mathf.RoundToInt(-p.y * 20f) + 1);
-        }
-        // hurdle and tunnel
-        Art.Make("HurdleBar", root, false, new Vector2(c.x - 4f, c.y + 1.4f), new Vector2(2.4f, 0.14f), Color.white, -9000);
-        Art.Make("HurdleL", root, false, new Vector2(c.x - 5.1f, c.y + 1.2f), new Vector2(0.14f, 0.7f), new Color(0.8f, 0.3f, 0.3f), -9000);
-        Art.Make("HurdleR", root, false, new Vector2(c.x - 2.9f, c.y + 1.2f), new Vector2(0.14f, 0.7f), new Color(0.8f, 0.3f, 0.3f), -9000);
-        Art.Make("Tunnel", root, true, new Vector2(c.x + 4f, c.y + 1.6f), new Vector2(3.2f, 1.7f), new Color(0.3f, 0.45f, 0.75f), -9000);
-        Art.Make("TunnelHole", root, true, new Vector2(c.x + 4.9f, c.y + 1.6f), new Vector2(0.8f, 1.2f), new Color(0.08f, 0.1f, 0.2f), -8999);
-        Art.Make("Sign", root, false, z.interact + new Vector2(2.2f, 0.4f), new Vector2(1.6f, 0.9f), new Color(0.5f, 0.35f, 0.2f), -8000);
-        Art.LabelWithShadow(z.name, root, new Vector2(c.x, c.y + 6.9f), 0.7f, Color.white, 8000);
-    }
-
-    static void BuildPark(Transform root, ZoneInfo z)
-    {
-        var c = z.center;
-        var pond = new Vector2(c.x + 4f, c.y + 3.2f);
-        Art.Make("PondRim", root, true, pond, new Vector2(7.4f, 4.4f), new Color(0.75f, 0.7f, 0.5f), -9700);
-        Art.Make("Pond", root, true, pond, new Vector2(6.8f, 3.9f), new Color(0.3f, 0.6f, 0.85f), -9690);
-        Art.Make("Lily", root, true, pond + new Vector2(-1f, 0.3f), new Vector2(0.7f, 0.45f), new Color(0.3f, 0.7f, 0.35f), -9680);
-        World.Blockers.Add(new Rect(pond.x - 2.8f, pond.y - 1.5f, 5.6f, 3f));
-        // bench at the interaction point
-        Art.Make("BenchSeat", root, false, z.interact + new Vector2(-2.6f, 0.2f), new Vector2(1.8f, 0.4f), new Color(0.55f, 0.37f, 0.2f), -8000);
-        Art.Make("BenchBack", root, false, z.interact + new Vector2(-2.6f, 0.55f), new Vector2(1.8f, 0.2f), new Color(0.45f, 0.3f, 0.16f), -7999);
-        // flowers
-        var rng = new System.Random(5);
-        Color[] fl = { new Color(1f, 0.5f, 0.6f), new Color(1f, 0.9f, 0.3f), new Color(0.8f, 0.6f, 1f), Color.white };
-        for (int i = 0; i < 40; i++)
-        {
-            var p = new Vector2(c.x + (float)(rng.NextDouble() * 18 - 9), c.y + (float)(rng.NextDouble() * 12 - 4));
-            if (Mathf.Abs(p.x - c.x) < 1.6f) continue;
-            if (Vector2.Distance(p, pond) < 3.9f) continue;
-            Art.Make("Flower", root, true, p, new Vector2(0.22f, 0.22f), fl[i % 4], -9600);
-        }
-        Art.LabelWithShadow(z.name, root, new Vector2(c.x, c.y + 6.4f), 0.7f, Color.white, 8000);
+        // Barjera tikai pie stumbra
+        Pasaule.Barjeras.Add(new Rect(vieta.x - 0.3f, vieta.y - 0.1f, 0.6f, 0.5f));
     }
 }
