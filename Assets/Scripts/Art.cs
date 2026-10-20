@@ -10,6 +10,34 @@ public static class Art
     public static Sprite Square { get { if (_square == null) _square = MakeSprite(false); return _square; } }
     public static Sprite Circle { get { if (_circle == null) _circle = MakeSprite(true); return _circle; } }
 
+    static Sprite _ring;
+    public static Sprite Ring
+    {
+        get
+        {
+            if (_ring == null)
+            {
+                int n = 256;
+                var tex = new Texture2D(n, n, TextureFormat.RGBA32, false);
+                tex.filterMode = FilterMode.Bilinear;
+                tex.wrapMode = TextureWrapMode.Clamp;
+                var px = new Color[n * n];
+                for (int y = 0; y < n; y++)
+                    for (int x = 0; x < n; x++)
+                    {
+                        float dx = (x + 0.5f) / n * 2f - 1f, dy = (y + 0.5f) / n * 2f - 1f;
+                        float d = Mathf.Sqrt(dx * dx + dy * dy);
+                        float a = Mathf.Clamp01((1f - d) * n * 0.5f) * Mathf.Clamp01((d - 0.93f) * n * 0.5f);
+                        px[y * n + x] = new Color(1, 1, 1, a);
+                    }
+                tex.SetPixels(px);
+                tex.Apply();
+                _ring = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100f);
+            }
+            return _ring;
+        }
+    }
+
     public static Font Font
     {
         get

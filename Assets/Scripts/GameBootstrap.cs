@@ -65,6 +65,7 @@ public static class GameBootstrap
         gm.care = root.AddComponent<CareSystem>();
         gm.training = root.AddComponent<TrainingSystem>();
         gm.shop = root.AddComponent<ShopSystem>();
+        gm.stick = root.AddComponent<StickGame>();
         gm.welfare = root.AddComponent<WelfareAndAdoption>();
         root.AddComponent<InteractionController>();
         gm.audioMgr = root.AddComponent<AudioManager>();

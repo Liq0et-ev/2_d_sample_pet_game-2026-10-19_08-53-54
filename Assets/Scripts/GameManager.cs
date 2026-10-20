@@ -32,6 +32,7 @@ public class GameManager : MonoBehaviour
     public CareSystem care;
     public TrainingSystem training;
     public ShopSystem shop;
+    public StickGame stick;
     public WelfareAndAdoption welfare;
     public UIManager ui;
     public AudioManager audioMgr;

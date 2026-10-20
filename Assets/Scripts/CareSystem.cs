@@ -67,6 +67,8 @@ public class CareSystem : MonoBehaviour
         m.body = "Pastaigas patērē enerģiju, bet uzlabo garastāvokli." + (e.leash ? " Ar pavadu pastaiga ir patīkamāka." : "");
         bool canWalk = d.energy >= 15f && !d.sick;
         m.items.Add(new MenuItem(canWalk ? "Doties pastaigā" : "Doties pastaigā (suns ir noguris vai slims)", Walk, canWalk));
+        bool canThrow = d.energy >= 10f && !d.sick;
+        m.items.Add(new MenuItem(canThrow ? "Mest nūju (5 mēģinājumi)" : "Mest nūju (suns ir noguris vai slims)", () => gm.stick.Begin(), canThrow));
         bool canPlay = e.toy && d.energy >= 10f && !d.sick;
         m.items.Add(new MenuItem(e.toy ? "Spēlēties ar rotaļlietu" : "Spēlēties (vajag rotaļlietu no veikala)", Play, canPlay));
         return m;
