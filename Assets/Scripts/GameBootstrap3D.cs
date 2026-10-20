@@ -58,7 +58,16 @@ public static class GameBootstrap3D
         spele.sunaProgress = sunaObjekts.AddComponent<DogProgress>();
         spele.sunaSekosana3D = sunaObjekts.AddComponent<DogFollow3D>();
         spele.sunaSekosana3D.speletajs = speletajs.transform;
-        spele.sunaAnimacija3D = sunaObjekts.AddComponent<SunaAnimacija3D>();
+
+        // Animacijas skripts: viens suņam no vienkāršajām formām, otrs suņam no gatavā modeļa
+        if (sunaObjekts.transform.Find("Izskats/Ermenis") != null)
+        {
+            spele.sunaAnimacija3D = sunaObjekts.AddComponent<SunaAnimacija3D>();
+        }
+        else
+        {
+            spele.sunaAnimacija3D = sunaObjekts.AddComponent<SunaModelaAnimacija>();
+        }
         sunaObjekts.GetComponent<SunaIzskats>().Nokrasot(spele.suns.kruasa);
         sunaObjekts.SetActive(false);
 
@@ -201,6 +210,12 @@ public static class GameBootstrap3D
         float dzilums = 4.2f;
         float augstums = 3.5f;
 
+        // Vispirms mēģinām gatavo ēkas modeli
+        if (IzveidotEkasModeli(sakne, zona, platums))
+        {
+            return;
+        }
+
         // Augšējo zonu ēkas ir pie Z = 14, apakšējo pie Z = -14
         float ekasZ = -14f;
         float priekssPuse = 1f;         // uz kuru pusi ir durvis (uz galveno celu)
@@ -252,9 +267,86 @@ public static class GameBootstrap3D
         Maksla3D.TekstsArVaru(zona.nosaukums, sakne, new Vector3(zona.centrs.x, augstums + 2.4f, ekasZ), 0.9f, Color.white);
     }
 
+    // Ēkas modeļu nosaukumi katrai zonai (Kenney "City Kit Suburban")
+    static string EkasModelaNosaukums(ZonasVeids veids)
+    {
+        if (veids == ZonasVeids.Labklajiba) return "building-type-e";
+        if (veids == ZonasVeids.Maja) return "building-type-g";
+        if (veids == ZonasVeids.Veikals) return "building-type-h";
+        return "building-type-f";       // klīnika
+    }
+
+    // Izveido ēku no gatava modeļa. Atgriež false, ja modelis netika atrasts.
+    static bool IzveidotEkasModeli(Transform sakne, ZonasInfo zona, float platums)
+    {
+        bool irAugseja = zona.centrs.y > 0;
+
+        // Augšējo zonu ēkām durvis jāvērš uz -Z (uz galveno ceļu), apakšējām uz +Z.
+        // Modeļa durvis pēc noklusējuma ir vērstas uz +Z.
+        float pagrieziens = 0f;
+        if (irAugseja)
+        {
+            pagrieziens = 180f;
+        }
+
+        Vector3 izmeri;
+        GameObject eka = Modeli3D.Izveidot(Modeli3D.EkuMape + EkasModelaNosaukums(zona.veids),
+            sakne, Vector3.zero, platums, false, pagrieziens, false, out izmeri);
+        if (eka == null)
+        {
+            return false;
+        }
+
+        // Ēkas priekšpuse ir 1 vienību no mijiedarbības vietas (kur spēlētājs spiež E)
+        float dzilums = izmeri.z;
+        float centraZ = 11.2f + dzilums * 0.5f;
+        if (irAugseja == false)
+        {
+            centraZ = -centraZ;
+        }
+        eka.transform.localPosition = new Vector3(zona.centrs.x, 0f, centraZ);
+
+        // Ēka ir siena, kurai cauri nevar iet
+        Rect barjera = new Rect(zona.centrs.x - izmeri.x * 0.5f, centraZ - dzilums * 0.5f, izmeri.x, dzilums);
+        Pasaule.Barjeras.Add(barjera);
+
+        Maksla3D.TekstsArVaru(zona.nosaukums, sakne, new Vector3(zona.centrs.x, izmeri.y + 1.3f, centraZ), 0.9f, Color.white);
+        return true;
+    }
+
+    // Žogs no gataviem modeļiem (Kenney "Nature Kit"): modeļi pa 2 vienībām pēc kārtas
+    static void IzveidotModelaZogu(Transform sakne, Vector2 no, Vector2 lidz)
+    {
+        Vector2 starpiba = lidz - no;
+        float garums = starpiba.magnitude;
+        int gabalu = Mathf.Max(1, Mathf.RoundToInt(garums / 2f));
+
+        // Žogs iet vai nu pa X, vai pa Z asi
+        float pagrieziens = 0f;
+        if (Mathf.Abs(starpiba.y) > Mathf.Abs(starpiba.x))
+        {
+            pagrieziens = 90f;
+        }
+
+        for (int i = 0; i < gabalu; i++)
+        {
+            Vector2 vieta = no + starpiba * ((i + 0.5f) / gabalu);
+            Vector3 izmeri;
+            Modeli3D.Izveidot(Modeli3D.DabasMape + "fence_simple", sakne, new Vector3(vieta.x, 0f, vieta.y),
+                garums / gabalu, false, pagrieziens, false, out izmeri);
+        }
+    }
+
     // Parocīga žoga līnija no viena punkta uz otru (kartes koordinātēs)
     static void IzveidotZogu(Transform sakne, Vector2 no, Vector2 lidz)
     {
+        // Ja ir gatavs žoga modelis, izmantojam to
+        if (Resources.Load<GameObject>(Modeli3D.DabasMape + "fence_simple") != null)
+        {
+            IzveidotModelaZogu(sakne, no, lidz);
+            return;
+        }
+
         Color zogaKrasa = new Color(0.95f, 0.95f, 0.9f);
         Vector2 starpiba = lidz - no;
         float garums = starpiba.magnitude;
@@ -311,10 +403,21 @@ public static class GameBootstrap3D
         caurums.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
 
         // Zīme pie ieejas
-        Maksla3D.Kubs("ZimesStabs", sakne, new Vector3(zona.mijiedarbibasPunkts.x + 2.2f, 0.7f, zona.mijiedarbibasPunkts.y + 0.5f), new Vector3(0.1f, 1.4f, 0.1f), new Color(0.4f, 0.28f, 0.16f));
-        Maksla3D.Kubs("Zime", sakne, new Vector3(zona.mijiedarbibasPunkts.x + 2.2f, 1.4f, zona.mijiedarbibasPunkts.y + 0.5f), new Vector3(1.6f, 0.8f, 0.1f), new Color(0.5f, 0.35f, 0.2f));
+        Vector3 zimesVieta = new Vector3(zona.mijiedarbibasPunkts.x + 2.2f, 0f, zona.mijiedarbibasPunkts.y + 0.5f);
+        GameObject zimesModelis = Modeli3D.IzveidotArAugstumu(Modeli3D.DabasMape + "sign", sakne, zimesVieta, 1.3f, 180f);
+        if (zimesModelis == null)
+        {
+            IzveidotZimiBezModela(sakne, zona);
+        }
 
         Maksla3D.TekstsArVaru(zona.nosaukums, sakne, new Vector3(c.x, 2.2f, c.y + 6.4f), 0.9f, Color.white);
+    }
+
+    // Vienkārša zīme no formām (ja nav modeļa)
+    static void IzveidotZimiBezModela(Transform sakne, ZonasInfo zona)
+    {
+        Maksla3D.Kubs("ZimesStabs", sakne, new Vector3(zona.mijiedarbibasPunkts.x + 2.2f, 0.7f, zona.mijiedarbibasPunkts.y + 0.5f), new Vector3(0.1f, 1.4f, 0.1f), new Color(0.4f, 0.28f, 0.16f));
+        Maksla3D.Kubs("Zime", sakne, new Vector3(zona.mijiedarbibasPunkts.x + 2.2f, 1.4f, zona.mijiedarbibasPunkts.y + 0.5f), new Vector3(1.6f, 0.8f, 0.1f), new Color(0.5f, 0.35f, 0.2f));
     }
 
     // Konuss no sakrautiem cilindriem (Unity nav gatavas konusa formas)
@@ -361,6 +464,7 @@ public static class GameBootstrap3D
             new Color(0.8f, 0.6f, 1f),
             Color.white
         };
+        string[] ziedaModeli = { "flower_redA", "flower_yellowA", "flower_purpleA", "flower_redB", "flower_yellowB", "flower_purpleB" };
         for (int i = 0; i < 40; i++)
         {
             float x = c.x + (float)(nejausais.NextDouble() * 18 - 9);
@@ -370,8 +474,30 @@ public static class GameBootstrap3D
             if (Mathf.Abs(vieta.x - c.x) < 1.6f) continue;
             if (Vector2.Distance(vieta, diki) < 3.9f) continue;
 
-            Maksla3D.Cilindrs("ZiedaKats", sakne, new Vector3(x, 0.12f, z), new Vector3(0.03f, 0.12f, 0.03f), new Color(0.25f, 0.55f, 0.25f));
-            Maksla3D.Sfera("Zieds", sakne, new Vector3(x, 0.28f, z), new Vector3(0.25f, 0.2f, 0.25f), ziedaKrasas[i % 4]);
+            // Zieds no gatavā modeļa; ja tā nav, tad vienkārši no formām
+            string ziedaNosaukums = ziedaModeli[i % ziedaModeli.Length];
+            GameObject ziedaObjekts = Modeli3D.IzveidotArAugstumu(Modeli3D.DabasMape + ziedaNosaukums, sakne,
+                new Vector3(x, 0f, z), 0.5f, i * 47f);
+            if (ziedaObjekts == null)
+            {
+                Maksla3D.Cilindrs("ZiedaKats", sakne, new Vector3(x, 0.12f, z), new Vector3(0.03f, 0.12f, 0.03f), new Color(0.25f, 0.55f, 0.25f));
+                Maksla3D.Sfera("Zieds", sakne, new Vector3(x, 0.28f, z), new Vector3(0.25f, 0.2f, 0.25f), ziedaKrasas[i % 4]);
+            }
+        }
+
+        // Akmeņi pie dīķa un krūmi parkā (tikai ja ir modeļi)
+        string[] akmenuModeli = { "rock_smallA", "rock_smallB", "rock_largeA" };
+        for (int i = 0; i < 6; i++)
+        {
+            float lenkis = i * 60f * Mathf.Deg2Rad;
+            Vector3 akmenaVieta = new Vector3(diki.x + Mathf.Cos(lenkis) * 3.9f, 0f, diki.y + Mathf.Sin(lenkis) * 2.3f);
+            Modeli3D.IzveidotArAugstumu(Modeli3D.DabasMape + akmenuModeli[i % 3], sakne, akmenaVieta, 0.5f + (i % 3) * 0.2f, i * 70f);
+        }
+        string[] krumuModeli = { "plant_bush", "plant_bushLarge", "plant_bushSmall" };
+        for (int i = 0; i < 6; i++)
+        {
+            Vector3 krumaVieta = new Vector3(c.x - 8f + i * 0.9f, 0f, c.y + 5.5f - (i % 2) * 1.2f);
+            Modeli3D.IzveidotArAugstumu(Modeli3D.DabasMape + krumuModeli[i % 3], sakne, krumaVieta, 0.9f, i * 55f);
         }
 
         Maksla3D.TekstsArVaru(zona.nosaukums, sakne, new Vector3(c.x, 2.2f, c.y + 6f), 0.9f, Color.white);
@@ -402,6 +528,18 @@ public static class GameBootstrap3D
 
     static void IzveidotKoku(Transform sakne, Vector2 vieta)
     {
+        // Vispirms mēģinām gatavo koka modeli (katram kokam cits modelis, augstums un pagrieziens)
+        string[] kokuModeli = { "tree_oak", "tree_default", "tree_detailed", "tree_fat", "tree_simple", "tree_tall" };
+        int numurs = Mathf.Abs(Mathf.RoundToInt(vieta.x * 13f + vieta.y * 7f));
+        float kokaAugstums = 3.6f + (numurs % 4) * 0.5f;
+        GameObject kokaModelis = Modeli3D.IzveidotArAugstumu(Modeli3D.DabasMape + kokuModeli[numurs % kokuModeli.Length],
+            sakne, new Vector3(vieta.x, 0f, vieta.y), kokaAugstums, (numurs % 8) * 45f);
+        if (kokaModelis != null)
+        {
+            Pasaule.Barjeras.Add(new Rect(vieta.x - 0.3f, vieta.y - 0.1f, 0.6f, 0.5f));
+            return;
+        }
+
         GameObject koks = new GameObject("Koks");
         koks.transform.SetParent(sakne, false);
         koks.transform.localPosition = new Vector3(vieta.x, 0f, vieta.y);

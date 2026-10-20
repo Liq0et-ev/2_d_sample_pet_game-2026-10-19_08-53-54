@@ -52,6 +52,7 @@ Kods ir rakstīts vienkāršā veidā: mainīgo, funkciju un palīgklašu nosauk
 | `SunaAnimacija.cs` | Suņa animācijas ar kodu: skriešana, elpošana, sēdēšana, guļēšana, ēšana, lēkāšana, slimības poza |
 | `GameBootstrap3D.cs`, `Maksla3D.cs` | 3D versija: karte, tēli, suns no 3D formām |
 | `PlayerMovement3D.cs`, `CameraFollow3D.cs`, `DogFollow3D.cs`, `SunaAnimacija3D.cs` | 3D kustība, kamera, suņa sekošana un animācijas |
+| `Modeli3D.cs`, `ModelaAnimacijas.cs` | Gatavo 3D modeļu ielāde (izmērs, pagrieziens, materiāli) un to animācijas (suns, spēlētājs) |
 | `InteractionController.cs` | E mijiedarbība |
 | `DogStatus.cs`, `DogProgress.cs`, `PlayerProgress.cs` | Vajadzības, prasmes, līmeņi |
 | `CareSystem.cs` | Māja, parks, klīnika |
@@ -61,6 +62,24 @@ Kods ir rakstīts vienkāršā veidā: mainīgo, funkciju un palīgklašu nosauk
 | `WelfareAndAdoption.cs` | Suņu izsniegšana, pārbaudes, adopcija |
 | `UIManager.cs`, `AudioManager.cs` | HUD, izvēlnes, minikarte, ģenerētas skaņas |
 | `Maksla.cs`, `Pasaule.cs` | Procedurālā grafika, kartes dati un sadursmes |
+
+## 3D modeļi
+
+3D versijā izmantoti gatavi bezmaksas modeļi (mape `Assets/Resources/Modeli`). Ja kāds modelis netiek atrasts, spēle automātiski izmanto vienkāršās formas, tāpēc tā vienmēr darbojas.
+
+| Ko izmanto | Modeļi | Autors un licence |
+|---|---|---|
+| Suns | `Dog.fbx` (animācijas: stāv, iet) | [Quaternius – Animal Pack Vol.2](https://opengameart.org/content/animated-animales-low-poly), CC0 |
+| Spēlētājs | `character-a.fbx` (animācijas: stāv, iet, skrien u.c.) | [Kenney – Blocky Characters](https://opengameart.org/content/blocky-characters), CC0 |
+| Ēkas | `building-type-e/f/g/h.fbx` | [Kenney – City Kit (Suburban)](https://opengameart.org/content/city-kit-suburban), CC0 |
+| Koki, ziedi, krūmi, akmeņi, žogs, zīme | `tree_*`, `flower_*`, `plant_*`, `rock_*`, `fence_simple`, `sign` | [Kenney – Nature Kit](https://opengameart.org/content/nature-kit), CC0 |
+
+Visi modeļi ir CC0 (publiskais īpašums), norādīšana nav obligāta, bet paldies Kenney un Quaternius!
+
+Piezīmes:
+- Sunim ir tikai divas gatavas animācijas (stāv un iet). Sēdēšanu, guļēšanu, ēšanu un lēkāšanu veido kods (suni pagriežot un saspiežot).
+- Modeļi tiek automātiski pielāgoti izmēram. Suņa skatiena virzienu kods nosaka pats. Ja spēlētāja modelis ir pagriezts uz nepareizo pusi, maini `SpeletajaPagrieziens` failā `Modeli3D.cs`.
+- Projekts izmanto URP 2D renderētāju; 3D ainas apgaismojums tāpēc ir vienkāršāks nekā 3D renderētājā.
 
 ## Zināmie ierobežojumi
 

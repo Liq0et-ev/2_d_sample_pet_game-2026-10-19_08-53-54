@@ -24,16 +24,26 @@ public static class Maksla3D
         return sheideris;
     }
 
-    // Uzliek objektam jaunu materialu ar dotu krasu
-    public static void Nokrasot(Renderer zimetajs, Color krasa)
+    // Izveido jaunu materialu ar dotu krasu (un, ja vajag, tekstūru)
+    public static Material JaunsMaterials(Color krasa, Texture tekstura)
     {
         Material materials = new Material(DabutSheideri());
         materials.color = krasa;
+        if (tekstura != null)
+        {
+            materials.mainTexture = tekstura;
+        }
         if (materials.HasProperty("_Smoothness"))
         {
-            materials.SetFloat("_Smoothness", 0.15f);       // lai nespid pārāk spoži
+            materials.SetFloat("_Smoothness", 0.1f);       // lai nespid pārāk spoži
         }
-        zimetajs.sharedMaterial = materials;
+        return materials;
+    }
+
+    // Uzliek objektam jaunu materialu ar dotu krasu
+    public static void Nokrasot(Renderer zimetajs, Color krasa)
+    {
+        zimetajs.sharedMaterial = JaunsMaterials(krasa, null);
     }
 
     // Izveido vienu gatavo formu (kubu, sferu...) ar izmēru un krāsu
@@ -47,7 +57,14 @@ public static class Maksla3D
         Collider sadursme = objekts.GetComponent<Collider>();
         if (sadursme != null)
         {
-            Object.Destroy(sadursme);
+            if (Application.isPlaying)
+            {
+                Object.Destroy(sadursme);
+            }
+            else
+            {
+                Object.DestroyImmediate(sadursme);
+            }
         }
 
         objekts.transform.SetParent(vecaks, false);
@@ -114,6 +131,13 @@ public static class Maksla3D
     // ---------------------------------------------------------------
     public static GameObject IzveidotSpeletaju(Transform vecaks)
     {
+        // Vispirms mēģinām gatavo 3D modeli
+        GameObject modelaSpeletajs = Modeli3D.IzveidotSpeletaju(vecaks);
+        if (modelaSpeletajs != null)
+        {
+            return modelaSpeletajs;
+        }
+
         GameObject sakne = new GameObject("Speletajs");
         sakne.transform.SetParent(vecaks, false);
         Transform izskats = TuksaisPunkts("Izskats", sakne.transform, Vector3.zero);
@@ -149,6 +173,13 @@ public static class Maksla3D
     // ---------------------------------------------------------------
     public static GameObject IzveidotSunu(Transform vecaks)
     {
+        // Vispirms mēģinām gatavo 3D modeli
+        GameObject modelaSuns = Modeli3D.IzveidotSunu(vecaks);
+        if (modelaSuns != null)
+        {
+            return modelaSuns;
+        }
+
         GameObject sakne = new GameObject("Suns");
         sakne.transform.SetParent(vecaks, false);
         SunaIzskats izskats = sakne.AddComponent<SunaIzskats>();

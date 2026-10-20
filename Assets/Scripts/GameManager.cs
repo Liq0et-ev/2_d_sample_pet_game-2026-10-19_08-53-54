@@ -38,7 +38,7 @@ public class GameManager : MonoBehaviour
     public DogFollow sunaSekosana;
     public SunaAnimacija sunaAnimacija;
     public DogFollow3D sunaSekosana3D;          // 3D versijas suna sekošana
-    public SunaAnimacija3D sunaAnimacija3D;     // 3D versijas suna animācija
+    public SunaAnimacijaBaze sunaAnimacija3D;     // 3D versijas suna animācija
     public PlayerProgress speletajaProgress;
     public EconomyManager ekonomika;
     public CareSystem aprupe;

@@ -3,7 +3,7 @@ using UnityEngine;
 // SunaAnimacija3D: suna kustibas 3D pasaule (tas pats princips kā SunaAnimacija 2D versijā).
 // Skripts katru kadru pagriež un pakustina suna kājas, asti, ausis, galvu un ermeni.
 // Pozu saraksts (SunaStavoklis) ir tas pats, kas 2D versijā.
-public class SunaAnimacija3D : MonoBehaviour
+public class SunaAnimacija3D : SunaAnimacijaBaze
 {
     // Suna dalas
     Transform izskats;
@@ -60,12 +60,12 @@ public class SunaAnimacija3D : MonoBehaviour
     Vector3 galvasBaze;
 
     // Citi skripti izsauc šīs funkcijas
-    public void Ediens()
+    public override void Ediens()
     {
         ediensTaimeris = 1.4f;
     }
 
-    public void Priecasanas()
+    public override void Priecasanas()
     {
         lecienaTaimeris = LecienaIlgums;
     }
