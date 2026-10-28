@@ -32,9 +32,9 @@ Spēlētājs saņem suņus no dzīvnieku labklājības centra, rūpējas par tie
 
 Citas ainas (piem., SampleScene demo) netiek ietekmētas.
 
-Abām versijām ir tā pati spēles loģika (suns, veikals, treniņš, adopcija, UI, skaņa); atšķiras tikai grafika, kustība, kamera un animācijas. 3D versijā kamera seko spēlētājam no augšas un aizmugures, un viss ir uzbūvēts no Unity gatavajām formām.
+Abām versijām ir tā pati spēles loģika (suns, veikals, treniņš, adopcija, UI, skaņa); atšķiras tikai grafika, kustība, kamera un animācijas. 3D versijā kamera seko spēlētājam no augšas un aizmugures, un tēli, ēkas un koki ir gatavi 3D modeļi (sk. sadaļu "3D modeļi").
 
-Spēle visu izveido pati no koda (karte, tēli, UI, skaņas) – nav jāpievieno objekti vai grafikas faili. Izmanto jauno Input System.
+Spēle pati uzbūvē karti, tēlus, UI un skaņas no koda, tāpēc ainās nekas nav jāsaliek ar roku (2D versijā nav vajadzīgi arī attēlu faili; 3D versija izmanto modeļus no mapes `Assets/Resources/Modeli`). Izmanto jauno Input System.
 
 ## Vadība
 
@@ -43,7 +43,7 @@ Spēle visu izveido pati no koda (karte, tēli, UI, skaņas) – nav jāpievieno
 | WASD / bultiņas | Pārvietot tēlu (suns seko) |
 | E | Mijiedarbība ar ēkām |
 | Pele | Izvēlnes, pirkumi, komandas |
-| Space | Aportēšanas minispēle: "Mest!" |
+| Space vai peles klikšķis | Minispēlēs: aportēšanā "Mest!" un nūjas mešanā (parks) |
 | Esc | Pauze / aizvērt izvēlni |
 
 ## Spēles norise
@@ -51,10 +51,12 @@ Spēle visu izveido pati no koda (karte, tēli, UI, skaņas) – nav jāpievieno
 1. **Labklājības centrs** (ZR) – saņem suni.
 2. **Māja** (DR) – pabaro suni, ļauj atpūsties, uzlabo māju.
 3. **Treniņu laukums** (augšā vidū) – trenē komandas *Sēdi, Guli, Pie manis, Gaidi*; minispēle *Aportēšana*; laukuma uzlabojumi.
-4. **Parks** (ZA) – pastaigas un rotaļas (garastāvoklis).
+4. **Parks** (ZA) – pastaigas, rotaļas un minispēle *Nūjas mešana* (5 mēģinājumi, jātrāpa zaļajā zonā; perfekts metiens suni iepriecina visvairāk) – visi paceļ garastāvokli.
 5. **Veikals** (D vidū) – barība, gardumi, rotaļlieta, pavada, konusi.
 6. **Klīnika** (DA) – slima suņa ārstēšana, apskate.
 7. Kad suns zina 4 komandas un ir labā stāvoklī, **Labklājības centrā** nokārto adopcijas pārbaudījumu (jāatkārto komandu secība) un saņem atlīdzību.
+
+Mērķis: 10 veiksmīgas adopcijas (pēc tam var spēlēt tālāk). Uzdevuma teksts ekrāna augšā vienmēr norāda, ko darīt tālāk. 2D versijā ir arī diena un nakts (viena diena ~6 min).
 
 Suņa rādītāji: veselība, izsalkums, enerģija, garastāvoklis. Nogurums sodu nerada, bet nolaidība (bads, ļoti zema veselība/garastāvoklis) izraisa brīdinājumu, tad naudas sodu.
 
@@ -118,6 +120,11 @@ Piezīmes:
 
 ## Zināmie ierobežojumi
 
-- Grafika ir vienkāršas krāsainas formas (vieta īstajiem sprite un 3D modeļiem).
+- 2D versijā grafika ir vienkāršas krāsainas formas (vieta īstajiem sprite).
+- 3D modeļi un 2D gaisma ir pārbaudīti tikai kompilācijas līmenī un spēlējot Unity; ja kaut kas izskatās nepareizi:
+  - spēlētājs vai ēkas ir pagriezti uz nepareizo pusi → sk. piezīmes sadaļā "3D modeļi";
+  - 2D versija ir pārāk tumša vai gaisma nedarbojas → faila `GameBootstrap.cs` rindu `sakne.AddComponent<Apgaismojums2D>();` var izdzēst, tad gaisma ir izslēgta.
+- 3D versijā nav dienas/nakts un 2D gaismas; kameras trīcēšana ir abās versijās.
 - Viens aktīvais suns; nav saglabāšanas.
-- Atlīdzības un vajadzību izmaiņu ātrumi ir sākotnēji, jālīdzsvaro testēšanā.
+- Atlīdzību un vajadzību izmaiņu ātrumi ir sākotnēji, jālīdzsvaro testēšanā.
+- Mapes `Assets/[BuildingBlocks]`, `Assets/Samples` un `SampleScene` nāk no Unity projekta sagataves un spēlei nav vajadzīgas.
