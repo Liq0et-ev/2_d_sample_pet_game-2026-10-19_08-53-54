@@ -49,6 +49,7 @@ public static class GameBootstrap
             kamerasSekosana = kamera.gameObject.AddComponent<CameraFollow>();
         }
         kamerasSekosana.merkis = speletajs.transform;
+        spele.kamera2D = kamerasSekosana;
         kamerasSekosana.Pielekt();
 
         // 4. Suns (paslēpts, kamēr spēlētājs to nesaņem labklājības centrā)
@@ -75,7 +76,10 @@ public static class GameBootstrap
         spele.skana.Izveidot();
         spele.saskarne.Izveidot();
 
-        // 6. Ievada izvēlne
+        // 6. 2D gaisma (diena un nakts, laterna, lampas)
+        sakne.AddComponent<Apgaismojums2D>();
+
+        // 7. Ievada izvēlne
         spele.saskarne.AtvertIzvelni(IevadaIzvelne);
     }
 

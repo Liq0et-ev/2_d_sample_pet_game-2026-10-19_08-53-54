@@ -24,6 +24,7 @@ public class PlayerProgress : MonoBehaviour
             GameManager spele = GameManager.Galvenais;
             spele.saskarne.Pazinojums("Spēlētāja līmenis: " + limenis + "! Pārbaudi uzlabojumus mājā un laukumā.");
             spele.skana.Atskanot(Skana.Limenis);
+            spele.TricetKameru(0.1f, 0.2f);
         }
     }
 }

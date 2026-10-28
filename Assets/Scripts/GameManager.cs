@@ -37,6 +37,8 @@ public class GameManager : MonoBehaviour
     public DogProgress sunaProgress;
     public DogFollow sunaSekosana;
     public SunaAnimacija sunaAnimacija;
+    public CameraFollow kamera2D;               // 2D versijas kamera
+    public CameraFollow3D kamera3D;             // 3D versijas kamera
     public DogFollow3D sunaSekosana3D;          // 3D versijas suna sekošana
     public SunaAnimacijaBaze sunaAnimacija3D;     // 3D versijas suna animācija
     public PlayerProgress speletajaProgress;
@@ -117,6 +119,39 @@ public class GameManager : MonoBehaviour
         else
         {
             sunaAnimacija.Priecasanas();
+        }
+    }
+
+    // Kameras trīcēšana (stiprums ~ 0.1 maza, 0.3 liela)
+    public void TricetKameru(float stiprums, float ilgums)
+    {
+        if (irTrisDimensiju)
+        {
+            if (kamera3D != null) kamera3D.Tricet(stiprums, ilgums);
+        }
+        else
+        {
+            if (kamera2D != null) kamera2D.Tricet(stiprums, ilgums);
+        }
+    }
+
+    // Ļoti īsa spēles apstāšanās (trieciena sajūta)
+    public void Triecienapauze(float sekundes)
+    {
+        saskarne.ApstadinatLaiku(sekundes);
+    }
+
+    // Suns uz brīdi nomirgo dotajā krāsā (2D versijā)
+    public void SunaUzplaiksne(Color krasa)
+    {
+        if (sunaObjekts == null)
+        {
+            return;
+        }
+        SunaIzskats izskats = sunaObjekts.GetComponent<SunaIzskats>();
+        if (izskats != null)
+        {
+            izskats.Uzplaiksnit(krasa, 0.35f);
         }
     }
 

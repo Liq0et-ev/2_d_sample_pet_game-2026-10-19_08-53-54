@@ -50,6 +50,7 @@ Kods ir rakstīts vienkāršā veidā: mainīgo, funkciju un palīgklašu nosauk
 | `GameManager.cs` | Centrālā piekļuve sistēmām (`GameManager.Galvenais`), uzdevumu teksts, komandu enum |
 | `PlayerMovement.cs`, `CameraFollow.cs`, `DogFollow.cs` | Kustība, kamera, suņa sekošana |
 | `SunaAnimacija.cs` | Suņa animācijas ar kodu: skriešana, elpošana, sēdēšana, guļēšana, ēšana, lēkāšana, slimības poza |
+| `Apgaismojums2D.cs` | 2D gaisma: diena/nakts, laterna, lampas pie ēkām, normālkarte apaļajiem objektiem |
 | `GameBootstrap3D.cs`, `Maksla3D.cs` | 3D versija: karte, tēli, suns no 3D formām |
 | `PlayerMovement3D.cs`, `CameraFollow3D.cs`, `DogFollow3D.cs`, `SunaAnimacija3D.cs` | 3D kustība, kamera, suņa sekošana un animācijas |
 | `Modeli3D.cs`, `ModelaAnimacijas.cs` | Gatavo 3D modeļu ielāde (izmērs, pagrieziens, materiāli) un to animācijas (suns, spēlētājs) |
@@ -62,6 +63,22 @@ Kods ir rakstīts vienkāršā veidā: mainīgo, funkciju un palīgklašu nosauk
 | `WelfareAndAdoption.cs` | Suņu izsniegšana, pārbaudes, adopcija |
 | `UIManager.cs`, `AudioManager.cs` | HUD, izvēlnes, minikarte, ģenerētas skaņas |
 | `Maksla.cs`, `Pasaule.cs` | Procedurālā grafika, kartes dati un sadursmes |
+
+## Spēles sajūta (2D) un gaisma
+
+Pēc tehniskās dokumentācijas ieviesti tie uzlabojumi, kas der šai spēlei (skats no augšas):
+
+| Uzlabojums | Kur |
+|---|---|
+| Plūdens paātrinājums un bremzēšana (nav pēkšņu apstāšanos) | `PlayerMovement.cs`, `DogFollow.cs` |
+| Kameras trīcēšana (screen shake): līmeņa kāpums, komandas apguve, adopcija, slimība, sods, perfekts metiens | `CameraFollow.cs` (2D), `CameraFollow3D.cs` (3D) |
+| Trieciena pauze (hit stop): īsa pauze svarīgos brīžos | `UIManager.ApstadinatLaiku` |
+| Suņa nomirgošana krāsā (zaļa = labi, sarkana = slikti, dzeltena = ļoti labi) | `SunaIzskats.Uzplaiksnit` |
+| Sadursmju robežas atdalītas no zīmētā izskata (mazāks taisnstūris pie kājām) | `Pasaule.cs`, `PlayerMovement.cs` |
+| 2D gaisma: diena un nakts (viena diena ~6 min), laterna pie spēlētāja, lampas pie ēkām naktī | `Apgaismojums2D.cs` |
+| Normālkartes apaļajiem objektiem (koku lapotnēm, sunim, strūklakai), lai tie izskatītos apjomīgi pret lampu gaismu | `Apgaismojums2D.cs`, `Maksla.cs` |
+
+Nav ieviests (neder spēlei ar skatu no augšas bez lēkšanas): Coyote Time, Jump Buffering un paralakses fona slāņi.
 
 ## 3D modeļi
 

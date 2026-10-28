@@ -157,6 +157,7 @@ public static class Maksla
         }
         zimetajs.color = krasa;
         zimetajs.sortingOrder = kartiba;
+        Apgaismojums2D.PielietotGaismu(zimetajs, irAplis);       // 2D gaisma (ja pieejama)
         return zimetajs;
     }
 
@@ -264,20 +265,21 @@ public class SunaIzskats : MonoBehaviour
     public List<Renderer> kruasaDalas3D = new List<Renderer>();
     public List<Renderer> tumsasDalas3D = new List<Renderer>();
 
+    // Pasreizejas suna krasas (lai pec mirgošanas varētu atjaunot)
+    Color pamataKruasa = Color.white;
+    Color pamataTumsa = Color.white;
+
+    // Mirgošana (kad notiek kaut kas svarigs)
+    Color mirgosanasKrasa = Color.white;
+    float mirgosanasLaiks = 0f;
+    float mirgosanasIlgums = 0f;
+
     // Nokraso suni ar izveleto kruasu
     public void Nokrasot(Color krasa)
     {
-        for (int i = 0; i < kruasaDalas.Count; i++)
-        {
-            kruasaDalas[i].color = krasa;
-        }
-
-        // Tumsaka versija ausim, astei un kajam
-        Color tumsaKrasa = new Color(krasa.r * 0.65f, krasa.g * 0.65f, krasa.b * 0.65f, 1f);
-        for (int i = 0; i < tumsasDalas.Count; i++)
-        {
-            tumsasDalas[i].color = tumsaKrasa;
-        }
+        pamataKruasa = krasa;
+        pamataTumsa = new Color(krasa.r * 0.65f, krasa.g * 0.65f, krasa.b * 0.65f, 1f);
+        UzliktKrasas(0f);
 
         // 3D dalas: katrai jauns materials ar dotu krasu
         for (int i = 0; i < kruasaDalas3D.Count; i++)
@@ -286,8 +288,46 @@ public class SunaIzskats : MonoBehaviour
         }
         for (int i = 0; i < tumsasDalas3D.Count; i++)
         {
-            Maksla3D.Nokrasot(tumsasDalas3D[i], tumsaKrasa);
+            Maksla3D.Nokrasot(tumsasDalas3D[i], pamataTumsa);
         }
+    }
+
+    // Uz brīdi nokrāso suni mirgošanas krāsā (piemēram, sarkana = slikti, zaļa = labi)
+    public void Uzplaiksnit(Color krasa, float ilgums)
+    {
+        mirgosanasKrasa = krasa;
+        mirgosanasIlgums = ilgums;
+        mirgosanasLaiks = ilgums;
+    }
+
+    // Uzliek 2D dalu krasas; "mirgosana" ir no 0 (nav) lidz 1 (pilna mirgošanas krāsa)
+    void UzliktKrasas(float mirgosana)
+    {
+        Color kruasa = Color.Lerp(pamataKruasa, mirgosanasKrasa, mirgosana);
+        Color tumsa = Color.Lerp(pamataTumsa, mirgosanasKrasa, mirgosana * 0.7f);
+        for (int i = 0; i < kruasaDalas.Count; i++)
+        {
+            kruasaDalas[i].color = kruasa;
+        }
+        for (int i = 0; i < tumsasDalas.Count; i++)
+        {
+            tumsasDalas[i].color = tumsa;
+        }
+    }
+
+    void Update()
+    {
+        if (mirgosanasLaiks <= 0f)
+        {
+            return;
+        }
+        mirgosanasLaiks = mirgosanasLaiks - Time.unscaledDeltaTime;
+        if (mirgosanasLaiks <= 0f)
+        {
+            UzliktKrasas(0f);       // mirgošana beigusies, atjaunojam parasto krasu
+            return;
+        }
+        UzliktKrasas(mirgosanasLaiks / mirgosanasIlgums);
     }
 }
 

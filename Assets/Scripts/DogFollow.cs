@@ -9,11 +9,16 @@ public class DogFollow : MonoBehaviour
 
     Vector2 sadursmesPusIzmers = new Vector2(0.4f, 0.15f);
 
+    // Suns paātrinās un bremzē plūdeni (nav pēkšņu apstāšanos)
+    Vector2 pasreizejaisAtrums = Vector2.zero;
+    const float Paatrinajums = 30f;
+
     // Uzreiz noliek suni blakus speletajam
     public void Pielekt()
     {
         Vector2 vieta = Pasaule.Parvietot(speletajs.position, new Vector2(-1.4f, 0), sadursmesPusIzmers);
         transform.position = new Vector3(vieta.x, vieta.y, 0);
+        pasreizejaisAtrums = Vector2.zero;
     }
 
     void Update()
@@ -42,21 +47,28 @@ public class DogFollow : MonoBehaviour
             atrums = atrums * 0.6f;
         }
 
-        kustas = atrums > 0.1f;
+        // Merka atrums ir virziens uz speletaju; suns pakāpeniski tuvojas šim atrumam
+        Vector2 merkaAtrums = Vector2.zero;
+        if (atrums > 0.1f)
+        {
+            merkaAtrums = uzSpeletaju.normalized * atrums;
+        }
+        pasreizejaisAtrums = Vector2.MoveTowards(pasreizejaisAtrums, merkaAtrums, Paatrinajums * Time.deltaTime);
+        kustas = pasreizejaisAtrums.magnitude > 0.2f;
 
         // 3. Parvietojam suni
         if (kustas)
         {
-            Vector2 solis = uzSpeletaju.normalized * atrums * Time.deltaTime;
+            Vector2 solis = pasreizejaisAtrums * Time.deltaTime;
             Vector2 jaunaVieta = Pasaule.Parvietot(sunaVieta, solis, sadursmesPusIzmers);
             transform.position = new Vector3(jaunaVieta.x, jaunaVieta.y, 0);
 
-            // Pagriežam suni uz speletaja pusi
-            if (uzSpeletaju.x > 0.3f)
+            // Pagriežam suni kustības virzienā
+            if (pasreizejaisAtrums.x > 0.3f)
             {
                 transform.localScale = new Vector3(1f, 1f, 1f);
             }
-            else if (uzSpeletaju.x < -0.3f)
+            else if (pasreizejaisAtrums.x < -0.3f)
             {
                 transform.localScale = new Vector3(-1f, 1f, 1f);
             }

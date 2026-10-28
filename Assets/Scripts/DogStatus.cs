@@ -165,6 +165,8 @@ public class DogStatus : MonoBehaviour
             slims = true;
             spele.saskarne.Pazinojums(vards + " saslima! Nogādā to veterinārajā klīnikā.");
             spele.skana.Atskanot(Skana.Slikti);
+            spele.SunaUzplaiksne(new Color(1f, 0.3f, 0.3f));
+            spele.TricetKameru(0.12f, 0.25f);
         }
     }
 

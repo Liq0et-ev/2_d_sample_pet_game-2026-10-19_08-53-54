@@ -49,6 +49,7 @@ public static class GameBootstrap3D
             kamerasSekosana = kamera.gameObject.AddComponent<CameraFollow3D>();
         }
         kamerasSekosana.merkis = speletajs.transform;
+        spele.kamera3D = kamerasSekosana;
         kamerasSekosana.Pielekt();
 
         // 4. Suns (paslēpts, kamēr spēlētājs to nesaņem labklājības centrā)

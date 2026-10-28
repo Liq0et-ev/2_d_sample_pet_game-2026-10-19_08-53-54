@@ -58,6 +58,8 @@ public class DogProgress : MonoBehaviour
             GameManager spele = GameManager.Galvenais;
             spele.saskarne.Pazinojums(spele.suns.vards + " sasniedza " + limenis + ". līmeni!");
             spele.skana.Atskanot(Skana.Limenis);
+            spele.SunaUzplaiksne(new Color(1f, 0.9f, 0.3f));
+            spele.TricetKameru(0.1f, 0.2f);
         }
     }
 }

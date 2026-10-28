@@ -118,6 +118,9 @@ public class UIManager : MonoBehaviour
     GameObject sunaPaneli;
     Image aptumsaAttels;
 
+    // Trieciena pauze: ļoti īsa spēles apstāšanās spēcīgā brīdī
+    float laikaPauzesTaimeris = 0f;
+
     // Aptumsuma (fade) animacija
     float aptumsaTaimeris = 0f;
     float aptumsaIlgums = 0f;
@@ -135,6 +138,12 @@ public class UIManager : MonoBehaviour
     // Atverto "logu" skaits (piemeram, minispeles) un ko darit, nospiezot ESC
     public int logaSkaits = 0;
     public Action logaAtcelsana;
+
+    // Uz brīdi (sekundēs) apstādina spēli, lai radītu trieciena sajūtu
+    public void ApstadinatLaiku(float sekundes)
+    {
+        laikaPauzesTaimeris = Mathf.Max(laikaPauzesTaimeris, sekundes);
+    }
 
     // Vai spele ir apstadinata (izvelne vai minispele ir atverta)?
     public bool IrBloketa()
@@ -680,13 +689,17 @@ public class UIManager : MonoBehaviour
         GameManager spele = GameManager.Galvenais;
 
         // Kamēr ir atverta izvelne vai minispēle, spēles laiks stāv
-        if (IrBloketa())
+        if (IrBloketa() || laikaPauzesTaimeris > 0f)
         {
             Time.timeScale = 0f;
         }
         else
         {
             Time.timeScale = 1f;
+        }
+        if (laikaPauzesTaimeris > 0f)
+        {
+            laikaPauzesTaimeris = laikaPauzesTaimeris - Time.unscaledDeltaTime;
         }
 
         // ESC poga

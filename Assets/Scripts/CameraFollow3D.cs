@@ -7,6 +7,20 @@ public class CameraFollow3D : MonoBehaviour
     public Vector3 nobide = new Vector3(0f, 11f, -9f);             // kur kamera atrodas attiecībā pret spēlētāju
     public float gludums = 6f;
 
+    // Trīcēšana
+    float tricesStiprums = 0f;
+    float tricesIlgums = 0f;
+    float tricesLaiks = 0f;
+    Vector3 tricesNobide = Vector3.zero;
+
+    // Sāk kameras trīcēšanu (stiprums ~ 0.1 maza, 0.3 liela; ilgums sekundēs)
+    public void Tricet(float stiprums, float ilgums)
+    {
+        tricesStiprums = stiprums;
+        tricesIlgums = ilgums;
+        tricesLaiks = ilgums;
+    }
+
     void LateUpdate()
     {
         if (merkis == null)
@@ -19,7 +33,15 @@ public class CameraFollow3D : MonoBehaviour
 
         // Maigi pārvietojam kameru un pagriežam to uz speletaju
         float koeficients = 1f - Mathf.Exp(-gludums * Time.unscaledDeltaTime);
-        transform.position = Vector3.Lerp(transform.position, vajadzigaVieta, koeficients);
+        Vector3 mierigaVieta = Vector3.Lerp(transform.position - tricesNobide, vajadzigaVieta, koeficients);
+        tricesNobide = Vector3.zero;
+        if (tricesLaiks > 0f)
+        {
+            tricesLaiks = tricesLaiks - Time.unscaledDeltaTime;
+            float atlicis = Mathf.Clamp01(tricesLaiks / tricesIlgums);
+            tricesNobide = Random.insideUnitSphere * tricesStiprums * atlicis;
+        }
+        transform.position = mierigaVieta + tricesNobide;
 
         Vector3 skatamais = merkis.position + new Vector3(0f, 1f, 1.5f);
         Quaternion merkaPagriezens = Quaternion.LookRotation(skatamais - transform.position);

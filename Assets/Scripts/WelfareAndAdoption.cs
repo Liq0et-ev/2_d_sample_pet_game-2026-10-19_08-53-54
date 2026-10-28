@@ -252,6 +252,8 @@ public class WelfareAndAdoption : MonoBehaviour
         {
             suns.Mainit(0, 0, -5, -3);
             spele.skana.Atskanot(Skana.Slikti);
+            spele.SunaUzplaiksne(new Color(1f, 0.4f, 0.4f));
+            spele.TricetKameru(0.12f, 0.25f);
             rezultataTeksts = teksts;
             return;
         }
@@ -267,6 +269,8 @@ public class WelfareAndAdoption : MonoBehaviour
         spele.irSuns = false;
         spele.sunaObjekts.SetActive(false);
         spele.skana.Atskanot(Skana.Limenis);
+        spele.TricetKameru(0.3f, 0.6f);
+        spele.Triecienapauze(0.12f);
 
         rezultataTeksts = vards + " tika veiksmīgi adoptēts un ieguva jaunu ģimeni!\nAtlīdzība: " + balva + " monētas.\nAdopcijas: " + spele.adopcijas + "/" + GameManager.UzvarasAdopcijas;
         if (spele.adopcijas == GameManager.UzvarasAdopcijas)
@@ -338,6 +342,8 @@ public class WelfareAndAdoption : MonoBehaviour
                 spele.ekonomika.monetas = spele.ekonomika.monetas - sods;
                 spele.saskarne.Pazinojums("Labklājības centrs piemēroja naudas sodu (" + sods + " monētas) par nolaidību.");
                 spele.skana.Atskanot(Skana.Slikti);
+                spele.SunaUzplaiksne(new Color(1f, 0.4f, 0.4f));
+                spele.TricetKameru(0.2f, 0.35f);
             }
         }
         else if (bridinajumi > 0)

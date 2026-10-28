@@ -205,6 +205,7 @@ public class TrainingSystem : MonoBehaviour
             progress.prasmes[komandasNumurs] = Mathf.Min(100f, progress.prasmes[komandasNumurs] + 4f);
             suns.Mainit(0, 0, 0, -3);
             spele.skana.Atskanot(Skana.Slikti);
+            spele.SunaUzplaiksne(new Color(1f, 0.4f, 0.4f));
             spele.saskarne.Pazinojums(suns.vards + " nesaprata. Mēģini vēlreiz (gardums un laba noskaņa palīdz).");
         }
     }
@@ -221,11 +222,15 @@ public class TrainingSystem : MonoBehaviour
         spele.speletajaProgress.PieliktPieredzi(5);
         spele.ekonomika.Nopelnit(3);
         spele.skana.Atskanot(Skana.Labi);
+        spele.SunaUzplaiksne(new Color(0.5f, 1f, 0.5f));
 
         if (jauBijaApgusta == false && progress.VaiApgusta(komanda))
         {
             // Komanda tikko tika apgūta - bonuss!
             spele.ekonomika.Nopelnit(10, true);
+            spele.SunaUzplaiksne(Color.white);
+            spele.TricetKameru(0.15f, 0.25f);
+            spele.Triecienapauze(0.08f);
             spele.saskarne.Pazinojums(suns.vards + " apguva komandu \"" + KomandasNosaukumi.Dabut(komanda) + "\"! (+10 monētas)");
             spele.skana.Atskanot(Skana.Riet);
             spele.SunaPriecajas();

@@ -172,6 +172,9 @@ public class NujasSpele : MonoBehaviour
                 rezultataTeksts.text = "Perfekti! " + suns.vards + " ir ļoti laimīgs!";
                 rezultataTeksts.color = new Color(1f, 0.9f, 0.3f);
                 spele.skana.Atskanot(Skana.Limenis);
+                spele.SunaUzplaiksne(new Color(1f, 0.9f, 0.3f));
+                spele.TricetKameru(0.15f, 0.25f);
+                spele.Triecienapauze(0.07f);
             }
             else
             {
@@ -183,6 +186,7 @@ public class NujasSpele : MonoBehaviour
                 rezultataTeksts.text = "Labi! " + suns.vards + " priecājas.";
                 rezultataTeksts.color = new Color(0.5f, 1f, 0.55f);
                 spele.skana.Atskanot(Skana.Labi);
+                spele.SunaUzplaiksne(new Color(0.5f, 1f, 0.5f));
             }
             spele.skana.Atskanot(Skana.Riet);
             spele.SunaPriecajas();
@@ -193,6 +197,7 @@ public class NujasSpele : MonoBehaviour
             rezultataTeksts.text = "Garām! Mēģinājums zaudēts.";
             rezultataTeksts.color = new Color(1f, 0.5f, 0.5f);
             spele.skana.Atskanot(Skana.Slikti);
+            spele.SunaUzplaiksne(new Color(1f, 0.4f, 0.4f));
         }
 
         AtjaunotInfo();
