@@ -5,12 +5,30 @@ Grupa 9, rudens semestris 2026./2027. – 1. praktiskais darbs.
 
 Spēlētājs saņem suņus no dzīvnieku labklājības centra, rūpējas par tiem, apmāca komandas un sagatavo adopcijai. Mērķis – 10 veiksmīgas adopcijas; pēc tam var turpināt brīvajā režīmā.
 
-## Kā palaist
+## Kā palaist (uz cita datora)
 
-1. Atver projektu mapi Unity 6000.6.2f1.
-2. Atver vienu no divām ainām un nospied **Play**:
+**Vajag:** Windows dators, [Unity Hub](https://unity.com/download) ar **Unity 6000.6.2f1** (precīza versija, citādi projekts var pieprasīt atjaunināšanu), [Git](https://git-scm.com/) un [Git LFS](https://git-lfs.com/) (repozitorijā lielie faili, piemēram, modeļi un tekstūras, ir glabāti ar LFS).
+
+1. Instalē Git LFS vienu reizi: `git lfs install`
+2. Lejupielādē projektu:
+   ```
+   git clone https://github.com/Liq0et-ev/2_d_sample_pet_game-2026-10-19_08-53-54.git
+   ```
+   (Ja projektu ielādē kā ZIP no GitHub, LFS faili nebūs pilni – labāk izmanto `git clone`.)
+3. Unity Hub → **Add → Add project from disk** → izvēlies klonēto mapi. Ja Hub prasa Unity versiju, izvēlies 6000.6.2f1 (to var instalēt tajā pašā Hub).
+4. Pirmā atvēršana ir lēna (vairākas minūtes): Unity lejupielādē pakotnes un ģenerē mapi `Library`. Vajadzīgs internets. Ja parādās drošā režīma (Safe Mode) logs, izvēlies *Ignore*, ja kļūdu nav.
+5. Atver vienu no divām ainām un nospied **Play**:
    - `Assets/Scenes/GudraisSuns` – **2D** versija (vai izvēlne **Gudrais suns → Open game scene (2D)**)
    - `Assets/Scenes/GudraisSuns3D` – **3D** versija (vai izvēlne **Gudrais suns → Open game scene (3D)**)
+
+   Ainas tiek izveidotas automātiski pirmajā atvēršanas reizē. Ja Project logā tās nav, izmanto izvēlni **Gudrais suns** augšā.
+
+**Problēmas:**
+- *Modeļi nav redzami / rozā*: LFS faili nav lejupielādēti. Palaid `git lfs pull` projekta mapē.
+- *Kompilācijas kļūdas Console logā*: pārbaudi, vai izmanto Unity 6000.6.2f1, un izvēlnē **Assets → Reimport All**.
+- *Pele neklikšķina uz pogām*: spēle izmanto jauno Input System; pārbaudi, ka Project Settings → Player → Active Input Handling ir *Input System Package (New)*.
+
+**Gatava .exe versija (netestēta):** Unity → **File → Build Profiles** → Windows → ainu sarakstā atstāj tikai vajadzīgo (2D: `GudraisSuns`, 3D: `GudraisSuns3D`) → **Build**. Uzmanību: spēle šeiderus atrod pēc nosaukuma, un tie var netikt iekļauti būvējumā (objekti var kļūt rozā). Drošākais veids spēlēt ir palaist no Unity ar **Play**.
 
 Citas ainas (piem., SampleScene demo) netiek ietekmētas.
 
