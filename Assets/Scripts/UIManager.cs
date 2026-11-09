@@ -662,6 +662,7 @@ public class UIManager : MonoBehaviour
             skanasTeksts = "Skaņa: izslēgta";
         }
         izvelne.pogas.Add(new IzvelnesPoga(skanasTeksts, ParslegtSkanu));
+        izvelne.pogas.Add(new IzvelnesPoga("Atpakaļ uz galveno izvēlni", AtgrieztiesUzGalvenoIzvelni));
         izvelne.pogas.Add(new IzvelnesPoga("Iziet no spēles", IzietNoSpeles));
         return izvelne;
     }
@@ -670,6 +671,19 @@ public class UIManager : MonoBehaviour
     {
         AudioManager skana = GameManager.Galvenais.skana;
         skana.izslegts = !skana.izslegts;
+        Iestatijumi.IestatitSkanu(!skana.izslegts);      // saglabājam, lai iestatījums paliek arī galvenajā izvēlnē
+    }
+
+    // Atgriežas galvenajā izvēlnē (citā ainā)
+    void AtgrieztiesUzGalvenoIzvelni()
+    {
+        Time.timeScale = 1f;        // pauze beidzas, citādi galvenā izvēlne būtu "iesaldēta"
+        if (Application.CanStreamedLevelBeLoaded(GalvenaIzvelne.AinasNosaukums) == false)
+        {
+            Pazinojums("Galvenās izvēlnes aina nav pievienota Build Settings sarakstam.");
+            return;
+        }
+        UnityEngine.SceneManagement.SceneManager.LoadScene(GalvenaIzvelne.AinasNosaukums);
     }
 
     void IzietNoSpeles()

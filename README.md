@@ -17,7 +17,8 @@ Spēlētājs saņem suņus no dzīvnieku labklājības centra, rūpējas par tie
    (Ja projektu ielādē kā ZIP no GitHub, LFS faili nebūs pilni – labāk izmanto `git clone`.)
 3. Unity Hub → **Add → Add project from disk** → izvēlies klonēto mapi. Ja Hub prasa Unity versiju, izvēlies 6000.6.2f1 (to var instalēt tajā pašā Hub).
 4. Pirmā atvēršana ir lēna (vairākas minūtes): Unity lejupielādē pakotnes un ģenerē mapi `Library`. Vajadzīgs internets. Ja parādās drošā režīma (Safe Mode) logs, izvēlies *Ignore*, ja kļūdu nav.
-5. Atver vienu no divām ainām un nospied **Play**:
+5. Atver ainu un nospied **Play**. Labākais sākums ir galvenā izvēlne (no tās var sākt 2D vai 3D spēli):
+   - `Assets/Scenes/GalvenaIzvelne` – **galvenā izvēlne** (vai izvēlne **Gudrais suns → Open main menu scene**)
    - `Assets/Scenes/GudraisSuns` – **2D** versija (vai izvēlne **Gudrais suns → Open game scene (2D)**)
    - `Assets/Scenes/GudraisSuns3D` – **3D** versija (vai izvēlne **Gudrais suns → Open game scene (3D)**)
 
@@ -44,7 +45,11 @@ Spēle pati uzbūvē karti, tēlus, UI un skaņas no koda, tāpēc ainās nekas 
 | E | Mijiedarbība ar ēkām |
 | Pele | Izvēlnes, pirkumi, komandas |
 | Space vai peles klikšķis | Minispēlēs: aportēšanā "Mest!" un nūjas mešanā (parks) |
-| Esc | Pauze / aizvērt izvēlni |
+| Esc | Pauze (tur: Turpināt, Skaņa, **Atpakaļ uz galveno izvēlni**, Iziet) / aizvērt izvēlni |
+
+## Galvenā izvēlne
+
+Spēle sākas ar galveno izvēlni (aina `GalvenaIzvelne`): **Sākt spēli (2D)**, **Sākt spēli (3D)**, **Kā spēlēt**, **Iestatījumi** (skaņa, skaļums, pilnekrāns; tiek saglabāti) un **Iziet**. No spēles jebkurā brīdī var atgriezties izvēlnē vai iziet ar **ESC**. UI izstrādes atskaite: [`docs/Gudrais_suns_UI_atskaite.docx`](docs/Gudrais_suns_UI_atskaite.docx).
 
 ## Spēles norise
 
@@ -66,6 +71,7 @@ Kods ir rakstīts vienkāršā veidā: mainīgo, funkciju un palīgklašu nosauk
 
 | Fails | Loma |
 |---|---|
+| `GalvenaIzvelne.cs`, `Iestatijumi.cs` | Galvenā izvēlne (paneļi, ainu ielāde) un saglabātie iestatījumi |
 | `GameBootstrap.cs` | Izveido visu spēli un karti, startē ar Play |
 | `GameManager.cs` | Centrālā piekļuve sistēmām (`GameManager.Galvenais`), uzdevumu teksts, komandu enum |
 | `PlayerMovement.cs`, `CameraFollow.cs`, `DogFollow.cs` | Kustība, kamera, suņa sekošana |

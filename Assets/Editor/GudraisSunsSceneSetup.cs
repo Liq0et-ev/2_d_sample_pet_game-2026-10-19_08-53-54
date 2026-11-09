@@ -5,12 +5,14 @@ using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
 
 // Šis redaktora skripts izveido spēles ainas (tikai kamera un gaisma; pati spēle uzbūvējas, kad nospiež Play):
+//   Assets/Scenes/GalvenaIzvelne.unity  - galvenā izvēlne (sākuma aina)
 //   Assets/Scenes/GudraisSuns.unity     - 2D versija
 //   Assets/Scenes/GudraisSuns3D.unity   - 3D versija
-// Ainas tiek pievienotas arī Build Settings sarakstam.
+// Ainas tiek pievienotas Build Settings sarakstam (galvenā izvēlne ir pirmā, jo spēle sākas ar to).
 [InitializeOnLoad]
 public static class GudraisSunsSceneSetup
 {
+    const string AinaIzvelne = "Assets/Scenes/GalvenaIzvelne.unity";
     const string Aina2D = "Assets/Scenes/GudraisSuns.unity";
     const string Aina3D = "Assets/Scenes/GudraisSuns3D.unity";
 
@@ -26,6 +28,7 @@ public static class GudraisSunsSceneSetup
         {
             return;
         }
+        // Izvēlnes ainu veidojam pēdējo, lai tā paliktu atvērta redaktorā
         if (File.Exists(Aina2D) == false)
         {
             IzveidotAinu(Aina2D, true);
@@ -34,9 +37,20 @@ public static class GudraisSunsSceneSetup
         {
             IzveidotAinu(Aina3D, true);
         }
+        if (File.Exists(AinaIzvelne) == false)
+        {
+            IzveidotAinu(AinaIzvelne, true);
+        }
+        SakartotBuildSettings();
     }
 
-    // Izvēlnes punkti: Gudrais suns -> Open game scene (2D / 3D)
+    // Izvēlnes punkti: Gudrais suns -> Open ...
+    [MenuItem("Gudrais suns/Open main menu scene")]
+    static void AtvertIzvelni()
+    {
+        AtvertAinu(AinaIzvelne);
+    }
+
     [MenuItem("Gudrais suns/Open game scene (2D)")]
     static void AtvertAinu2D()
     {
@@ -59,6 +73,7 @@ public static class GudraisSunsSceneSetup
         {
             EditorSceneManager.OpenScene(cels);
         }
+        SakartotBuildSettings();
     }
 
     static void IzveidotAinu(string cels, bool tikaiJaTira)
@@ -71,21 +86,32 @@ public static class GudraisSunsSceneSetup
 
         Scene aina = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
         EditorSceneManager.SaveScene(aina, cels);
+    }
 
-        // Pievienojam ainu Build Settings sarakstam, ja tur vēl nav
-        List<EditorBuildSettingsScene> ainas = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
-        bool jauIrSaraksta = false;
-        for (int i = 0; i < ainas.Count; i++)
+    // Build Settings saraksts: 0 = galvenā izvēlne, 1 = 2D, 2 = 3D, pēc tam citas ainas (ja ir)
+    static void SakartotBuildSettings()
+    {
+        string[] musuAinas = { AinaIzvelne, Aina2D, Aina3D };
+        List<EditorBuildSettingsScene> jaunaisSaraksts = new List<EditorBuildSettingsScene>();
+
+        for (int i = 0; i < musuAinas.Length; i++)
         {
-            if (ainas[i].path == cels)
+            if (File.Exists(musuAinas[i]))
             {
-                jauIrSaraksta = true;
+                jaunaisSaraksts.Add(new EditorBuildSettingsScene(musuAinas[i], true));
             }
         }
-        if (jauIrSaraksta == false)
+
+        // Citas ainas, kas jau bija sarakstā, paliek aiz mūsējām
+        EditorBuildSettingsScene[] vecais = EditorBuildSettings.scenes;
+        for (int i = 0; i < vecais.Length; i++)
         {
-            ainas.Insert(0, new EditorBuildSettingsScene(cels, true));
-            EditorBuildSettings.scenes = ainas.ToArray();
+            bool irMusuAina = vecais[i].path == AinaIzvelne || vecais[i].path == Aina2D || vecais[i].path == Aina3D;
+            if (irMusuAina == false)
+            {
+                jaunaisSaraksts.Add(vecais[i]);
+            }
         }
+        EditorBuildSettings.scenes = jaunaisSaraksts.ToArray();
     }
 }

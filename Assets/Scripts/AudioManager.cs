@@ -28,6 +28,10 @@ public class AudioManager : MonoBehaviour
     // ---------------------------------------------------------------
     public void Izveidot()
     {
+        // Saglabātie iestatījumi no galvenās izvēlnes (skaņa un skaļums)
+        izslegts = Iestatijumi.SkanaIeslegta() == false;
+        Iestatijumi.Pielietot();
+
         efektuAvots = gameObject.AddComponent<AudioSource>();
         efektuAvots.playOnAwake = false;
 
