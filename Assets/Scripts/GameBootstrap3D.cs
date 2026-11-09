@@ -12,6 +12,21 @@ public static class GameBootstrap3D
     static Color celaKrasa = new Color(0.84f, 0.78f, 0.62f);
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void Registreties()
+    {
+        // Šī funkcija tiek izsaukta TIKAI VIENU REIZI (kad sākas spēle). Tāpēc, lai spēle
+        // uzbūvētos arī pēc ainas maiņas (SceneManager.LoadScene), pieslēdzamies notikumam
+        // "aina ielādēta".
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= PecAinasIeladesanas;
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded += PecAinasIeladesanas;
+        Sakums();
+    }
+
+    static void PecAinasIeladesanas(UnityEngine.SceneManagement.Scene aina, UnityEngine.SceneManagement.LoadSceneMode rezims)
+    {
+        Sakums();
+    }
+
     static void Sakums()
     {
         string pasreizejaAina = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;

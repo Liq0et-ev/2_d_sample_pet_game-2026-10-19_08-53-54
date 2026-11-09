@@ -11,6 +11,21 @@ public static class GameBootstrap
 
     // Unity pats izsauc šo funkciju pēc ainas ielādes
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void Registreties()
+    {
+        // Šī funkcija tiek izsaukta TIKAI VIENU REIZI (kad sākas spēle). Tāpēc, lai spēle
+        // uzbūvētos arī pēc ainas maiņas (SceneManager.LoadScene), pieslēdzamies notikumam
+        // "aina ielādēta".
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= PecAinasIeladesanas;
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded += PecAinasIeladesanas;
+        Sakums();
+    }
+
+    static void PecAinasIeladesanas(UnityEngine.SceneManagement.Scene aina, UnityEngine.SceneManagement.LoadSceneMode rezims)
+    {
+        Sakums();
+    }
+
     static void Sakums()
     {
         // Strādājam tikai savā ainā
